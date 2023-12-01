@@ -39,6 +39,6 @@ def test_db():
 
 if __name__ == '__main__':
     #print(test_db())
-    app.run(host='0.0.0.0', debug=True, ssl_context=('cert.pem', 'key.pem'), port=5000) #TODO: Fix ssl_context (HTTPS doesn't work)
+    app.run(host='0.0.0.0', debug=True, port=5000) #TODO: Fix ssl_context (HTTPS doesn't work)
 
 
