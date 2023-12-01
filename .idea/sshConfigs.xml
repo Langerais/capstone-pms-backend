@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="ec2-13-53-36-242.eu-north-1.compute.amazonaws.com" id="af100ce2-1b11-4c8d-ad4b-93c4f86e0a90" keyPath="C:\Users\Dorfi\capDeploy" port="22" nameFormat="DESCRIPTIVE" username="ubuntu" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>

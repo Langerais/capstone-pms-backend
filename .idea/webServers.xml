@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="a57cb7ab-f071-415f-8219-0de9082f96c8" name="AWS" url="http://13.53.36.242">
+        <fileTransfer rootFolder="/home/ubuntu/capstone_app" accessType="SFTP" host="ec2-13-53-36-242.eu-north-1.compute.amazonaws.com" port="22" sshConfigId="af100ce2-1b11-4c8d-ad4b-93c4f86e0a90" sshConfig="ubuntu@ec2-13-53-36-242.eu-north-1.compute.amazonaws.com:22 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
