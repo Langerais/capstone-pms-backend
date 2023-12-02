@@ -1,4 +1,5 @@
 # auth.py
+from datetime import timedelta
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
@@ -29,7 +30,9 @@ def login():  # TODO: Logout!!!
 
     if user and bcrypt.check_password_hash(user.password_hash, password):
         additional_claims = {"department": user.department}
-        access_token = create_access_token(identity=user.email, additional_claims=additional_claims)
+        access_token = create_access_token(identity=user.email,
+                                           additional_claims=additional_claims,
+                                           expires_delta=timedelta(days=1))
         return jsonify(access_token=access_token), 200
 
     return jsonify({"msg": "Bad email or password"}), 401
