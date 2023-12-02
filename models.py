@@ -4,6 +4,8 @@ from datetime import date
 
 db = SQLAlchemy()
 
+# TODO: Add models: Restaurant/Bar order, Menu entry, Notification (?), Payment, Cleaning action (?);
+
 
 class Room(db.Model):
     __tablename__ = 'rooms'  # Explicitly specify the table name
@@ -98,6 +100,7 @@ class User(db.Model):
         }
 
 
+# Department model, also used as user role
 class Department(db.Model):
     __tablename__ = 'departments'
     department_name = db.Column(db.String(100), primary_key=True)

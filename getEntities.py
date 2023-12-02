@@ -3,6 +3,7 @@ from models import Room
 
 get_entities_blueprint = Blueprint('get_entities_blueprint', __name__)
 
+# TODO: Remove this route and file
 
 @get_entities_blueprint.route('/rooms', methods=['GET'])
 def get_rooms():

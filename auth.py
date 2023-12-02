@@ -37,7 +37,7 @@ def login():  # TODO: Logout!!!
 
 @auth_blueprint.route('/get_user_department', methods=['GET'])
 @jwt_required()
-def get_user_department():
+def get_user_department():  # TODO: TEST TEST TEST TEST TEST TEST !!!
     user_email = get_jwt_identity()
     user = User.query.filter_by(email=user_email).first()
 
@@ -48,8 +48,8 @@ def get_user_department():
 
 
 # Decorator to check if user has the required role
-def requires_role(role):    # TODO: Add access control to all functions that require it (@requires_role('Admin'))
-    def decorator(fn):
+def requires_role(role):  # TODO: Add access control to all functions that require it (@requires_role('Admin'))
+    def decorator(fn):  # TODO: TEST TEST TEST TEST TEST TEST !!!
         @wraps(fn)
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()  # Ensure the user is logged in
@@ -57,10 +57,13 @@ def requires_role(role):    # TODO: Add access control to all functions that req
             if 'department' in claims and claims['department'] == role:
                 return fn(*args, **kwargs)
             return jsonify({"msg": "Access Denied : Insufficient permissions"}), 403
+
         return wrapper
+
     return decorator
 
 
+# Validators:
 def is_valid_email(email):
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     return re.match(pattern, email) is not None
@@ -70,3 +73,8 @@ def is_valid_phone(phone):
     # Modify this regex according to your needs for phone number validation
     regex = r'^\+?1?\d{9,15}$'
     return re.fullmatch(regex, phone)
+
+# TEST Validators:
+# curl -X PUT http://localhost:5000/users/modify_user/1 \
+# -H "Content-Type: application/json" \
+# -d '{"email": "incorrect-email-format", "phone": "123"}'

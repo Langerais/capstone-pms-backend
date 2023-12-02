@@ -7,7 +7,7 @@ room_management_blueprint = Blueprint('room_management', __name__)
 
 
 @room_management_blueprint.route('/create_room', methods=['POST'])
-def create_room():
+def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
     data = request.get_json()
     room_name = data.get('room_name')
     max_guests = data.get('max_guests')
@@ -38,13 +38,13 @@ def create_room():
 
 
 @room_management_blueprint.route('/get_rooms', methods=['GET'])
-def get_rooms():
+def get_rooms(): # TODO: TEST TEST TEST TEST TEST TEST !!!
     rooms = Room.query.all()
     return jsonify([room.to_dict() for room in rooms]), 200
 
 
 @room_management_blueprint.route('/get_room/<int:room_id>', methods=['GET'])
-def get_room(room_id):
+def get_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     room = Room.query.get(room_id)
     if room:
         return jsonify(room.to_dict()), 200
@@ -52,7 +52,7 @@ def get_room(room_id):
 
 
 @room_management_blueprint.route('/remove_room/<int:room_id>', methods=['DELETE'])
-def remove_room(room_id):
+def remove_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     room = Room.query.get(room_id)
     if room:
         db.session.delete(room)
@@ -62,7 +62,7 @@ def remove_room(room_id):
 
 
 @room_management_blueprint.route('/edit_room/<int:room_id>', methods=['PUT'])
-def edit_room(room_id):
+def edit_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     room = Room.query.get(room_id)
     if room:
         data = request.get_json()
@@ -77,7 +77,7 @@ def edit_room(room_id):
 
 
 @room_management_blueprint.route('/update_room_status/<int:room_id>', methods=['PUT'])
-def update_room_status(room_id):
+def update_room_status(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     data = request.get_json()
     status = data.get('status')
 
@@ -97,7 +97,7 @@ def update_room_status(room_id):
 
 
 @room_management_blueprint.route('/get_room_status/<int:room_id>', methods=['GET'])
-def get_room_status(room_id):
+def get_room_status(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     latest_status = RoomCleaningStatus.query \
         .filter_by(room_id=room_id) \
         .order_by(RoomCleaningStatus.updated_at.desc()) \

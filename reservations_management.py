@@ -4,7 +4,7 @@ from models import db, Reservation  # Import the Reservation model from models.p
 reservations_management_blueprint = Blueprint('reservations_management', __name__)
 
 @reservations_management_blueprint.route('/add_reservation', methods=['POST'])
-def add_reservation():
+def add_reservation(): # TODO: TEST TEST TEST TEST TEST TEST !!!
     data = request.get_json()
     new_reservation = Reservation(
         channel_manager_id=data.get('channel_manager_id'),

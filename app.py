@@ -1,5 +1,4 @@
 from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
 from getSecret import get_secret
 from sqlalchemy import text
 from models import db
@@ -19,22 +18,24 @@ app.config['JWT_SECRET_KEY'] = '1234567890'  # TODO: Change to value from secret
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
 
+# Get the secret from AWS Secret Manager
 secret = get_secret()
+
+# Set the database URI
 db_username = secret['username']
 db_password = secret['password']
 # db_name = secret['dbInstanceIdentifier']
 db_name = 'postgres'
 db_host = secret['host']
 db_port = secret['port']
-
 app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
 
-# db = SQLAlchemy(app) # TODO: Remove this line
+# db = SQLAlchemy(app) # TODO: Remove this line?
 
 db.init_app(app)  # Initialize db with the app context
 
 # Register the blueprints
-app.register_blueprint(get_entities_blueprint, url_prefix='/api')
+app.register_blueprint(get_entities_blueprint, url_prefix='/api') # TODO: Remove this
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 app.register_blueprint(registration_blueprint, url_prefix='/auth')
 app.register_blueprint(guest_management_blueprint, url_prefix='/guests')
@@ -45,7 +46,7 @@ app.register_blueprint(user_management_blueprint, url_prefix='/users')
 
 @app.route('/test/admin', methods=['GET'])
 @jwt_required()
-def test_admin_access():
+def test_admin_access():    # TODO: Depricated, remove this; Replace with required_roles decorator
     claims = get_jwt()
     department = claims.get('department')
 
@@ -56,7 +57,7 @@ def test_admin_access():
 
 
 @app.route('/')
-def test_db():
+def test_db():  # TODO: Remove this
     try:
         with db.session.begin():
             # Wrap the SQL query with text()

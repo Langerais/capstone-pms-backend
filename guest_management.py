@@ -5,7 +5,7 @@ guest_management_blueprint = Blueprint('guest_management', __name__)
 
 
 @guest_management_blueprint.route('/add_guest', methods=['POST'])
-def add_guest():
+def add_guest(): # TODO: TEST TEST TEST TEST TEST TEST !!!
     data = request.get_json()
     new_guest = Guest(
         name=data['name'],
