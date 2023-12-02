@@ -1,17 +1,18 @@
 # auth.py
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token
-from werkzeug.security import check_password_hash
-from models import db, User  # Assuming your User model is defined in models.py
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
+from models import db, User
 from flask_bcrypt import Bcrypt
+from functools import wraps
 import re
 
 auth_blueprint = Blueprint('auth', __name__)
 bcrypt = Bcrypt()
 
+
 @auth_blueprint.route('/login', methods=['POST'])
-def login():
+def login():  # TODO: Logout!!!
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
@@ -25,7 +26,7 @@ def login():
         return jsonify({"msg": "Invalid email format"}), 400
 
     user = User.query.filter_by(email=email).first()
-    #if user and check_password_hash(user.password_hash, password):
+
     if user and bcrypt.check_password_hash(user.password_hash, password):
         additional_claims = {"department": user.department}
         access_token = create_access_token(identity=user.email, additional_claims=additional_claims)
@@ -34,6 +35,38 @@ def login():
     return jsonify({"msg": "Bad email or password"}), 401
 
 
+@auth_blueprint.route('/get_user_department', methods=['GET'])
+@jwt_required()
+def get_user_department():
+    user_email = get_jwt_identity()
+    user = User.query.filter_by(email=user_email).first()
+
+    if user:
+        return jsonify({"department": user.department}), 200
+
+    return jsonify({"msg": "User not found"}), 404
+
+
+# Decorator to check if user has the required role
+def requires_role(role):    # TODO: Add access control to all functions that require it (@requires_role('Admin'))
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            verify_jwt_in_request()  # Ensure the user is logged in
+            claims = get_jwt()
+            if 'department' in claims and claims['department'] == role:
+                return fn(*args, **kwargs)
+            return jsonify({"msg": "Access Denied : Insufficient permissions"}), 403
+        return wrapper
+    return decorator
+
+
 def is_valid_email(email):
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     return re.match(pattern, email) is not None
+
+
+def is_valid_phone(phone):
+    # Modify this regex according to your needs for phone number validation
+    regex = r'^\+?1?\d{9,15}$'
+    return re.fullmatch(regex, phone)
