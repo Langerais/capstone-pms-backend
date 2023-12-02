@@ -2,7 +2,10 @@
 <project version="4">
   <component name="SshConfigs">
     <configs>
-      <sshConfig connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="ec2-13-53-36-242.eu-north-1.compute.amazonaws.com" id="af100ce2-1b11-4c8d-ad4b-93c4f86e0a90" keyPath="C:\Users\Dorfi\capDeploy" port="22" nameFormat="DESCRIPTIVE" username="ubuntu" useOpenSSHConfig="true" />
+      <sshConfig connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="ec2-16-16-140-209.eu-north-1.compute.amazonaws.com" id="af100ce2-1b11-4c8d-ad4b-93c4f86e0a90" keyPath="C:\Users\Dorfi\capDeploy" port="22" nameFormat="DESCRIPTIVE" username="ubuntu" useOpenSSHConfig="true" />
+      <sshConfig connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="ec2-13-53-36-242.eu-north-1.compute.amazonaws.com" id="b40d45ba-a66a-4978-b7d7-e8d6cb09eb73" keyPath="C:\Users\Dorfi\capDeploy" port="22" customName="ubuntu@ec2-13-53-36-242.eu-north-1.compute.amazonaws.com:22" nameFormat="CUSTOM" username="ubuntu" useOpenSSHConfig="true">
+        <option name="customName" value="ubuntu@ec2-13-53-36-242.eu-north-1.compute.amazonaws.com:22" />
+      </sshConfig>
     </configs>
   </component>
 </project>

@@ -4,9 +4,16 @@ from getSecret import get_secret
 from sqlalchemy import text
 from models import db
 from getEntities import get_entities_blueprint
-
+from auth import auth_blueprint
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt
+from flask_bcrypt import Bcrypt
+from registration import registration_blueprint
 
 app = Flask(__name__)
+
+app.config['JWT_SECRET_KEY'] = '1234567890'  #TODO: Change to value from secret manager
+jwt = JWTManager(app)
+bcrypt = Bcrypt(app)
 
 secret = get_secret()
 db_username = secret['username']
@@ -24,6 +31,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_username}:{db_passwor
 db.init_app(app)  # Initialize db with the app context
 
 app.register_blueprint(get_entities_blueprint, url_prefix='/api')  # Register the blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+app.register_blueprint(registration_blueprint, url_prefix='/auth')
+
+@app.route('/test/admin', methods=['GET'])
+@jwt_required()
+def test_admin_access():
+    claims = get_jwt()
+    department = claims.get('department')
+
+    if department == 'Admin':
+        return jsonify({"msg": "Access granted, you are an Admin"}), 200
+
+    return jsonify({"msg": "Access denied, you are not an Admin"}), 403
 
 @app.route('/')
 def test_db():

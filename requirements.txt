@@ -3,3 +3,5 @@ boto3~=1.33.2
 botocore~=1.33.2
 flask-sqlalchemy==3.1.1 ; python_version >= "3.10" and python_version < "4.0"
 psycopg2-binary==2.9.9  # Use the version that works for your application
+SQLAlchemy~=2.0.23
+werkzeug~=3.0.1
