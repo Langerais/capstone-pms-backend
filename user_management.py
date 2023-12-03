@@ -9,7 +9,7 @@ user_management_blueprint = Blueprint('user_management', __name__)
 
 
 @user_management_blueprint.route('/create_user', methods=['POST'])
-def create_user():  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def create_user():  # TODO: TEST
     data = request.get_json()
     message, status_code = create_user_logic(data)
     return jsonify(message), status_code
@@ -53,7 +53,7 @@ def create_user_logic(data):
 
 
 @user_management_blueprint.route('/modify_user/<int:user_id>', methods=['PUT'])
-def modify_user(user_id):  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def modify_user(user_id):  # TODO: TEST
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -95,7 +95,7 @@ def modify_user(user_id):  # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @user_management_blueprint.route('/change_department/<int:user_id>', methods=['PUT'])
-def change_department(user_id):  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def change_department(user_id):  # TESTED: OK
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404

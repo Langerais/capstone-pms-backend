@@ -3,8 +3,9 @@ from models import db, Reservation  # Import the Reservation model from models.p
 
 reservations_management_blueprint = Blueprint('reservations_management', __name__)
 
+
 @reservations_management_blueprint.route('/add_reservation', methods=['POST'])
-def add_reservation(): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def add_reservation():  # TODO: TEST
     data = request.get_json()
     new_reservation = Reservation(
         channel_manager_id=data.get('channel_manager_id'),
@@ -25,7 +26,7 @@ def add_reservation(): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @reservations_management_blueprint.route('/delete_reservation/<int:reservation_id>', methods=['DELETE'])
-def delete_reservation(reservation_id):
+def delete_reservation(reservation_id):  # TODO: TEST
     reservation = Reservation.query.get(reservation_id)
     if reservation:
         try:
@@ -38,12 +39,13 @@ def delete_reservation(reservation_id):
     else:
         return jsonify({"msg": "Reservation not found"}), 404
 
+
 # TEST delete_reservation
 # curl -X DELETE http://localhost:5000/reservations/delete_reservation/1
 
 
 @reservations_management_blueprint.route('/modify_reservation/<int:reservation_id>', methods=['PUT'])
-def modify_reservation(reservation_id):
+def modify_reservation(reservation_id):  # TODO: TEST
     reservation = Reservation.query.get(reservation_id)
     if not reservation:
         return jsonify({"msg": "Reservation not found"}), 404
@@ -63,41 +65,43 @@ def modify_reservation(reservation_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+
 # TEST modify_reservation
 # curl -X PUT http://localhost:5000/reservations/modify_reservation/1 \
 # -H "Content-Type: application/json" \
 # -d '{"channel_manager_id": "newID", "due_amount": 300.00}'
 
 @reservations_management_blueprint.route('/get_reservation/<int:reservation_id>', methods=['GET'])
-def get_reservation(reservation_id):
+def get_reservation(reservation_id):  # TODO: TEST
     reservation = Reservation.query.get(reservation_id)
     if reservation:
         return jsonify(reservation.to_dict()), 200
     else:
         return jsonify({"msg": "Reservation not found"}), 404
 
+
 # TEST get_reservation
 # curl -X GET http://localhost:5000/reservations/get_reservation/1
 
 @reservations_management_blueprint.route('/get_reservations', methods=['GET'])
-def get_reservations():  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_reservations():  # TESTED: OK
     reservations = Reservation.query.all()
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
 
 # TODO: get_guest_reservations(guest_id)
 
 
 @reservations_management_blueprint.route('/get_guest_reservations/<int:guest_id>', methods=['GET'])
-def get_guest_reservations(guest_id):
+def get_guest_reservations(guest_id):  # TESTED: OK
     reservations = Reservation.query.filter_by(guest_id=guest_id)
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
 
 
 # get reservations intersecting with a given date range
 @reservations_management_blueprint.route('/get_reservations_by_date_range', methods=['GET'])
-def get_reservations_by_date_range():
+def get_reservations_by_date_range():  # TESTED: OK
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     reservations = Reservation.query.filter(Reservation.start_date <= end_date, Reservation.end_date >= start_date)
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
-

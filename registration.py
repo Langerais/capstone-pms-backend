@@ -11,7 +11,7 @@ bcrypt = Bcrypt()
 
 
 @registration_blueprint.route('/register', methods=['POST'])
-def register(): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def register(): # TODO: TEST
     data = request.json
     data['department'] = 'Pending'  # Set department to 'Pending'
 

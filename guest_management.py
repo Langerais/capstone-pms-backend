@@ -5,7 +5,7 @@ guest_management_blueprint = Blueprint('guest_management', __name__)
 
 
 @guest_management_blueprint.route('/add_guest', methods=['POST'])
-def add_guest(): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def add_guest(): # TODO: TEST
     data = request.get_json()
     new_guest = Guest(
         channel_manager_id=data['channel_manager_id'],
@@ -25,7 +25,7 @@ def add_guest(): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @guest_management_blueprint.route('/delete_guest/<int:guest_id>', methods=['DELETE'])
-def delete_guest(guest_id):
+def delete_guest(guest_id):  # TODO: TEST
     guest = Guest.query.get(guest_id)
     if guest:
         try:
@@ -40,7 +40,7 @@ def delete_guest(guest_id):
 
 
 @guest_management_blueprint.route('/modify_guest/<int:guest_id>', methods=['PUT'])
-def modify_guest(guest_id):
+def modify_guest(guest_id):  # TODO: TEST
     guest = Guest.query.get(guest_id)
     if not guest:
         return jsonify({"msg": "Guest not found"}), 404
@@ -61,7 +61,7 @@ def modify_guest(guest_id):
 
 
 @guest_management_blueprint.route('/get_guest/<int:guest_id>', methods=['GET'])
-def get_guest(guest_id):
+def get_guest(guest_id):  # TODO: TEST
     guest = Guest.query.get(guest_id)
     if guest:
         return jsonify(guest.to_dict()), 200
@@ -70,6 +70,6 @@ def get_guest(guest_id):
 
 
 @guest_management_blueprint.route('/get_guests', methods=['GET'])
-def get_guests():  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_guests():  # TESTED: OK
     guests = Guest.query.all()
     return jsonify([guest.to_dict() for guest in guests]), 200

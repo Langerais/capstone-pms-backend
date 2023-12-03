@@ -13,7 +13,7 @@ bcrypt = Bcrypt()
 
 
 @auth_blueprint.route('/login', methods=['POST'])
-def login():  # TODO: Logout!!!
+def login():  # TESTED : OK; TODO: Logout!!!
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
@@ -40,7 +40,7 @@ def login():  # TODO: Logout!!!
 
 @auth_blueprint.route('/get_user_department', methods=['GET'])
 @jwt_required()
-def get_user_department():  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_user_department():  # TESTED: OK
     user_email = get_jwt_identity()
     user = User.query.filter_by(email=user_email).first()
 

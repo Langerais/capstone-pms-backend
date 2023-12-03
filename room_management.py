@@ -7,7 +7,7 @@ room_management_blueprint = Blueprint('room_management', __name__)
 
 
 @room_management_blueprint.route('/create_room', methods=['POST'])
-def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def create_room(): # TODO: TEST
     data = request.get_json()
     channel_manager_id = data.get('channel_manager_id')
     room_name = data.get('room_name')
@@ -40,13 +40,13 @@ def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @room_management_blueprint.route('/get_rooms', methods=['GET'])
-def get_rooms(): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_rooms():  # TESTED: OK
     rooms = Room.query.all()
     return jsonify([room.to_dict() for room in rooms]), 200
 
 
 @room_management_blueprint.route('/get_room/<int:room_id>', methods=['GET'])
-def get_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_room(room_id): # TODO: TEST
     room = Room.query.get(room_id)
     if room:
         return jsonify(room.to_dict()), 200
@@ -54,7 +54,7 @@ def get_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @room_management_blueprint.route('/remove_room/<int:room_id>', methods=['DELETE'])
-def remove_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def remove_room(room_id): # TODO: TEST
     room = Room.query.get(room_id)
     if room:
         db.session.delete(room)
@@ -64,7 +64,7 @@ def remove_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @room_management_blueprint.route('/edit_room/<int:room_id>', methods=['PUT'])
-def edit_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def edit_room(room_id): # TODO: TEST
     room = Room.query.get(room_id)
     if room:
         data = request.get_json()
@@ -79,7 +79,7 @@ def edit_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @room_management_blueprint.route('/update_room_status/<int:room_id>', methods=['PUT'])
-def update_room_status(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def update_room_status(room_id): # TODO: TEST
     data = request.get_json()
     status = data.get('status')
 
@@ -99,7 +99,7 @@ def update_room_status(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 
 @room_management_blueprint.route('/get_room_status/<int:room_id>', methods=['GET'])
-def get_room_status(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
+def get_room_status(room_id): # TODO: TEST
     latest_status = RoomCleaningStatus.query \
         .filter_by(room_id=room_id) \
         .order_by(RoomCleaningStatus.updated_at.desc()) \
