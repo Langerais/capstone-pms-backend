@@ -11,6 +11,7 @@ class Room(db.Model):
     __tablename__ = 'rooms'  # Explicitly specify the table name
 
     id = db.Column(db.Integer, primary_key=True)
+    channel_manager_id = db.Column(db.String(255))
     room_name = db.Column(db.String(255))
     max_guests = db.Column(db.Integer)
     number_of_beds = db.Column(db.Integer)
@@ -18,6 +19,7 @@ class Room(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'channel_manager_id': self.channel_manager_id,
             'room_name': self.room_name,
             'max_guests': self.max_guests,
             'number_of_beds': self.number_of_beds
@@ -35,6 +37,7 @@ class RoomCleaningStatus(db.Model):
 class Guest(db.Model):
     __tablename__ = 'guests'
     id = db.Column(db.Integer, primary_key=True)
+    channel_manager_id = db.Column(db.String(255))
     name = db.Column(db.String(100), nullable=False)
     surname = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
@@ -43,6 +46,7 @@ class Guest(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'channel_manager_id': self.channel_manager_id,
             'name': self.name,
             'surname': self.surname,
             'phone': self.phone,
@@ -53,7 +57,7 @@ class Guest(db.Model):
 class Reservation(db.Model):
     __tablename__ = 'reservations'
     id = db.Column(db.Integer, primary_key=True)
-    channel_manager_id = db.Column(db.String(100))
+    channel_manager_id = db.Column(db.String(255))
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
@@ -64,8 +68,8 @@ class Reservation(db.Model):
         return {
             'id': self.id,
             'channel_manager_id': self.channel_manager_id,
-            'start_date': self.start_date,
-            'end_date': self.end_date,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
             'room_id': self.room_id,
             'guest_id': self.guest_id,
             'due_amount': str(self.due_amount)

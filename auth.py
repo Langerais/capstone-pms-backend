@@ -67,12 +67,12 @@ def requires_role(role):  # TODO: Add access control to all functions that requi
 
 
 # Validators:
-def is_valid_email(email):
+def is_valid_email(email): #TESTED OK
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     return re.match(pattern, email) is not None
 
 
-def is_valid_phone(phone):
+def is_valid_phone(phone):  # TESTED OK
     # Modify this regex according to your needs for phone number validation
     regex = r'^\+?1?\d{9,15}$'
     return re.fullmatch(regex, phone)

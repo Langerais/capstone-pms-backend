@@ -9,6 +9,7 @@ room_management_blueprint = Blueprint('room_management', __name__)
 @room_management_blueprint.route('/create_room', methods=['POST'])
 def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
     data = request.get_json()
+    channel_manager_id = data.get('channel_manager_id')
     room_name = data.get('room_name')
     max_guests = data.get('max_guests')
     number_of_beds = data.get('number_of_beds')
@@ -17,6 +18,7 @@ def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
         return jsonify({"msg": "Missing required room data"}), 400
 
     new_room = Room(
+        channel_manager_id=channel_manager_id,
         room_name=room_name,
         max_guests=max_guests,
         number_of_beds=number_of_beds
@@ -31,7 +33,7 @@ def create_room(): # TODO: TEST TEST TEST TEST TEST TEST !!!
         db.session.add(initial_status)
         db.session.commit()
 
-        return jsonify({"msg": "Room created successfully", "room_id": new_room.id}), 201
+        return jsonify(new_room.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
@@ -66,10 +68,10 @@ def edit_room(room_id): # TODO: TEST TEST TEST TEST TEST TEST !!!
     room = Room.query.get(room_id)
     if room:
         data = request.get_json()
+        room.channel_manager_id = data.get('channel_manager_id', room.channel_manager_id)
         room.room_name = data.get('room_name', room.room_name)
         room.max_guests = data.get('max_guests', room.max_guests)
         room.number_of_beds = data.get('number_of_beds', room.number_of_beds)
-        # Add other fields as necessary
 
         db.session.commit()
         return jsonify(room.to_dict()), 200
