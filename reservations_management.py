@@ -86,7 +86,18 @@ def get_reservations():  # TODO: TEST TEST TEST TEST TEST TEST !!!
 
 # TODO: get_guest_reservations(guest_id)
 
+
 @reservations_management_blueprint.route('/get_guest_reservations/<int:guest_id>', methods=['GET'])
 def get_guest_reservations(guest_id):
     reservations = Reservation.query.filter_by(guest_id=guest_id)
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
+
+# get reservations intersecting with a given date range
+@reservations_management_blueprint.route('/get_reservations_by_date_range', methods=['GET'])
+def get_reservations_by_date_range():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    reservations = Reservation.query.filter(Reservation.start_date <= end_date, Reservation.end_date >= start_date)
+    return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
