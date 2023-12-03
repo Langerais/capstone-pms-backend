@@ -51,18 +51,16 @@ def get_user_department():  # TESTED: OK
 
 
 # Decorator to check if user has the required role
-def requires_role(role):  # TODO: Add access control to all functions that require it (@requires_role('Admin'))
-    def decorator(fn):  # TODO: TEST TEST TEST TEST TEST TEST !!!
+def requires_roles(*roles):     # @requires_roles('Admin', 'Manager', 'OtherRole')
+    def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()  # Ensure the user is logged in
             claims = get_jwt()
-            if 'department' in claims and claims['department'] == role:
+            if 'department' in claims and claims['department'] in roles:
                 return fn(*args, **kwargs)
-            return jsonify({"msg": "Access Denied : Insufficient permissions"}), 403
-
+            return jsonify({"msg": "Access Denied: Insufficient permissions"}), 403
         return wrapper
-
     return decorator
 
 

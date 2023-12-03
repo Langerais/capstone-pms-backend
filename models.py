@@ -1,6 +1,7 @@
+import datetime as datetime
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import date
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -114,4 +115,59 @@ class Department(db.Model):
         return {
             'department_name': self.department_name,
             'description': self.description
+        }
+
+
+class MenuCategory(db.Model):
+    __tablename__ = 'menu_categories'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
+
+
+class MenuItem(db.Model):
+    __tablename__ = 'menu_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('menu_categories.id'), nullable=False)
+    description = db.Column(db.Text)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+
+    category = db.relationship('MenuCategory', backref=db.backref('items', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'category_id': self.category_id,
+            'description': self.description,
+            'price': str(self.price)  # Convert Decimal to string for JSON serialization
+        }
+
+
+class Balance(db.Model):
+    __tablename__ = 'balance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'), nullable=False)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)  # 0 for payment with cash -1 for payment with credit card
+    transaction_timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Set default to current UTC time
+    amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)  # Negative for payment
+
+    reservation = db.relationship('Reservation', backref=db.backref('balances', lazy=True))
+    menu_item = db.relationship('MenuItem', backref=db.backref('balances', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'reservation_id': self.reservation_id,
+            'menu_item_id': self.menu_item_id,
+            'transaction_timestamp': self.transaction_timestamp.isoformat()  # Convert DateTime to ISO format string
         }

@@ -11,6 +11,7 @@ from guest_management import guest_management_blueprint
 from reservations_management import reservations_management_blueprint
 from room_management import room_management_blueprint
 from user_management import user_management_blueprint
+from menu_management import menu_management_blueprint
 
 app = Flask(__name__)
 
@@ -42,6 +43,7 @@ app.register_blueprint(guest_management_blueprint, url_prefix='/guests')
 app.register_blueprint(reservations_management_blueprint, url_prefix='/reservations')
 app.register_blueprint(room_management_blueprint, url_prefix='/rooms')
 app.register_blueprint(user_management_blueprint, url_prefix='/users')
+app.register_blueprint(menu_management_blueprint, url_prefix='/menu')
 
 
 @app.route('/test/admin', methods=['GET'])
