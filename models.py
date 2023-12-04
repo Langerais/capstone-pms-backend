@@ -157,9 +157,10 @@ class Balance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'), nullable=False)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)  # 0 for payment with cash -1 for payment with credit card
-    transaction_timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Set default to current UTC time
-    amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)  # Negative for payment
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)
+    transaction_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+    number_of_items = db.Column(db.Integer, nullable=False, default=1)  # New field
 
     reservation = db.relationship('Reservation', backref=db.backref('balances', lazy=True))
     menu_item = db.relationship('MenuItem', backref=db.backref('balances', lazy=True))
@@ -169,5 +170,8 @@ class Balance(db.Model):
             'id': self.id,
             'reservation_id': self.reservation_id,
             'menu_item_id': self.menu_item_id,
-            'transaction_timestamp': self.transaction_timestamp.isoformat()  # Convert DateTime to ISO format string
+            'transaction_timestamp': self.transaction_timestamp.isoformat(),
+            'amount': str(self.amount),
+            'number_of_items': self.number_of_items  # Include in to_dict method
         }
+

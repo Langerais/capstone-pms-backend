@@ -141,7 +141,17 @@ def modify_item(item_id):
 @menu_management_blueprint.route('/get_items', methods=['GET'])
 def get_items():
     items = MenuItem.query.all()
-    return jsonify([item.to_dict() for item in items]), 200
+    return jsonify([item.to_dict() for item in items]), 200\
+
+
+
+@menu_management_blueprint.route('/get_item', methods=['GET'])
+def get_menu_item(item_id):
+    item = MenuItem.query.get(item_id)
+    if item:
+        return jsonify(item.to_dict()), 200
+    else:
+        return jsonify({"msg": "Reservation not found"}), 404
 
 
 @menu_management_blueprint.route('/get_items_by_category/<int:category_id>', methods=['GET'])
@@ -160,11 +170,12 @@ def create_balance_entry():
     reservation_id = data.get('reservation_id')
     menu_item_id = data.get('menu_item_id', 0)  # Default 0 for payment
     amount = data.get('amount', 0)  # Default amount to 0
+    number_of_items = data.get('number_of_items', 1)  # Default number of items to 1
 
     if reservation_id is None:
         return jsonify({"msg": "Missing required balance data"}), 400
 
-    new_balance_entry = Balance(reservation_id=reservation_id, menu_item_id=menu_item_id, amount=amount)
+    new_balance_entry = Balance(reservation_id=reservation_id, menu_item_id=menu_item_id, amount=amount, number_of_items=number_of_items)
 
     try:
         db.session.add(new_balance_entry)
