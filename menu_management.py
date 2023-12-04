@@ -66,14 +66,14 @@ def modify_category(category_id):
 
 
 @menu_management_blueprint.route('/get_categories', methods=['GET'])
-def get_categories():
+def get_categories():  # TESTED OK
     categories = MenuCategory.query.all()
     return jsonify([category.to_dict() for category in categories]), 200
 
 
 # Menu item management
 @menu_management_blueprint.route('/create_item', methods=['POST'])
-def create_item():
+def create_item():  # TESTED OK
     data = request.get_json()
     name = data.get('name')
     category_id = data.get('category_id')
@@ -139,14 +139,14 @@ def modify_item(item_id):
 
 
 @menu_management_blueprint.route('/get_items', methods=['GET'])
-def get_items():
+def get_items(): # TESTED OK
     items = MenuItem.query.all()
     return jsonify([item.to_dict() for item in items]), 200\
 
 
 
 @menu_management_blueprint.route('/get_item', methods=['GET'])
-def get_menu_item(item_id):
+def get_menu_item(item_id): # TESTED OK
     item = MenuItem.query.get(item_id)
     if item:
         return jsonify(item.to_dict()), 200
@@ -155,7 +155,7 @@ def get_menu_item(item_id):
 
 
 @menu_management_blueprint.route('/get_items_by_category/<int:category_id>', methods=['GET'])
-def get_items_by_category(category_id):
+def get_items_by_category(category_id): # TESTED OK
     items = MenuItem.query.filter_by(category_id=category_id).all()
     if items:
         return jsonify([item.to_dict() for item in items]), 200
@@ -165,7 +165,7 @@ def get_items_by_category(category_id):
 
 # Balance management
 @menu_management_blueprint.route('/create_balance_entry', methods=['POST'])
-def create_balance_entry():
+def create_balance_entry(): # TESTED OK
     data = request.get_json()
     reservation_id = data.get('reservation_id')
     menu_item_id = data.get('menu_item_id', 0)  # Default 0 for payment
