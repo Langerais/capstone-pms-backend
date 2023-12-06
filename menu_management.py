@@ -67,7 +67,7 @@ def modify_category(category_id):
 
 @menu_management_blueprint.route('/get_categories', methods=['GET'])
 def get_categories():  # TESTED OK
-    categories = MenuCategory.query.all()
+    categories = MenuCategory.query.filter(MenuCategory.id != -1, MenuCategory.id != 0).all()
     return jsonify([category.to_dict() for category in categories]), 200
 
 
@@ -140,7 +140,7 @@ def modify_item(item_id):
 
 @menu_management_blueprint.route('/get_items', methods=['GET'])
 def get_items(): # TESTED OK
-    items = MenuItem.query.all()
+    items = MenuItem.query.filter(MenuItem.id != -1, MenuItem.id != 0).all()
     return jsonify([item.to_dict() for item in items]), 200\
 
 
@@ -156,7 +156,7 @@ def get_menu_item(item_id): # TESTED OK
 
 @menu_management_blueprint.route('/get_items_by_category/<int:category_id>', methods=['GET'])
 def get_items_by_category(category_id): # TESTED OK
-    items = MenuItem.query.filter_by(category_id=category_id).all()
+    items = MenuItem.query.filter_by(category_id=category_id).filter(MenuItem.id != -1, MenuItem.id != 0).all()
     if items:
         return jsonify([item.to_dict() for item in items]), 200
     else:
@@ -254,7 +254,7 @@ def add_payment():  # Guest payment
     payment_method = data.get('payment_method')  # "cash" or "card"
 
     # Check for valid reservation ID, payment amount, and payment method
-    if reservation_id is None or payment_amount is None or payment_method not in ["cash", "card"]:
+    if reservation_id is None or payment_amount is None or payment_method not in ["cash", "card"] or payment_amount == 0:
         return jsonify({"msg": "Missing or invalid payment data"}), 400
 
     try:
