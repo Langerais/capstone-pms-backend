@@ -145,7 +145,7 @@ def get_items(): # TESTED OK
 
 
 
-@menu_management_blueprint.route('/get_item', methods=['GET'])
+@menu_management_blueprint.route('/get_item/<int:item_id>', methods=['GET'])
 def get_menu_item(item_id): # TESTED OK
     item = MenuItem.query.get(item_id)
     if item:
@@ -278,5 +278,8 @@ def add_payment():  # Guest payment
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+
 
 

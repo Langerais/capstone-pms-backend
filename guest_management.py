@@ -73,3 +73,11 @@ def get_guest(guest_id):  # TODO: TEST
 def get_guests():  # TESTED: OK
     guests = Guest.query.all()
     return jsonify([guest.to_dict() for guest in guests]), 200
+
+
+@guest_management_blueprint.route('/get_guests_by_ids', methods=['POST'])
+def get_guests_by_ids():
+    guest_ids = request.json.get('guest_ids', [])
+    guests = Guest.query.filter(Guest.id.in_(guest_ids)).all()
+    return jsonify([guest.to_dict() for guest in guests]), 200
+

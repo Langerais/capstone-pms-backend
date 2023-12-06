@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Reservation  # Import the Reservation model from models.py
+from models import db, Reservation, Balance  # Import the Reservation model from models.py
 
 reservations_management_blueprint = Blueprint('reservations_management', __name__)
 
@@ -105,3 +105,16 @@ def get_reservations_by_date_range():  # TESTED: OK
     end_date = request.args.get('end_date')
     reservations = Reservation.query.filter(Reservation.start_date <= end_date, Reservation.end_date >= start_date)
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
+
+# Calculate the unpaid amount for a given reservation (Restaurant only)
+@reservations_management_blueprint.route('/calculate_unpaid_amount/<int:reservation_id>', methods=['GET'])
+def calculate_unpaid_amount(reservation_id):
+    balance_entries = Balance.query.filter_by(reservation_id=reservation_id).all()
+
+    total_charges = sum(entry.amount for entry in balance_entries if entry.menu_item_id > 0)
+    total_payments = sum(entry.amount for entry in balance_entries if entry.menu_item_id in [0, -1])
+
+    unpaid_amount = total_charges + total_payments  # Payments are negative amounts
+    return jsonify({'unpaid_amount': str(unpaid_amount)}), 200
+

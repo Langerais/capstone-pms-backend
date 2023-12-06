@@ -157,10 +157,10 @@ class Balance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'), nullable=False)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)  # 0 for cash payments, -1 for credit card payments
     transaction_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
-    number_of_items = db.Column(db.Integer, nullable=False, default=1)  # New field
+    number_of_items = db.Column(db.Integer, nullable=False, default=1)
 
     reservation = db.relationship('Reservation', backref=db.backref('balances', lazy=True))
     menu_item = db.relationship('MenuItem', backref=db.backref('balances', lazy=True))
