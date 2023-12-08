@@ -5,7 +5,7 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-# TODO: Add models: Restaurant/Bar order, Menu entry, Notification (?), Payment, Cleaning action (?);
+# TODO: Add models: Restaurant/Bar order, Notification (?), Cleaning action (?);
 
 
 class Room(db.Model):
@@ -27,7 +27,7 @@ class Room(db.Model):
         }
 
 
-class RoomCleaningStatus(db.Model):
+class RoomCleaningStatus(db.Model):  # TODO: Remove this model
     __tablename__ = 'room_cleaning_status'
     id = db.Column(db.Integer, primary_key=True)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
@@ -174,4 +174,44 @@ class Balance(db.Model):
             'amount': str(self.amount),
             'number_of_items': self.number_of_items  # Include in to_dict method
         }
+
+
+class CleaningAction(db.Model):
+    __tablename__ = 'cleaning_actions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    action_name = db.Column(db.String(255), nullable=False)
+    frequency_days = db.Column(db.Integer, nullable=False)  # The frequency of the action in days
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'action_name': self.action_name,
+            'frequency_days': self.frequency_days
+        }
+
+
+class CleaningSchedule(db.Model):
+    __tablename__ = 'cleaning_schedule'
+
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
+    action_id = db.Column(db.Integer, db.ForeignKey('cleaning_actions.id'), nullable=False)
+    performed_timestamp = db.Column(db.Date, nullable=True, default=None)
+    scheduled_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='pending')  # e.g., 'pending', 'completed'
+
+    room = db.relationship('Room', backref=db.backref('cleaning_schedules', lazy=True))
+    action = db.relationship('CleaningAction', backref=db.backref('cleaning_schedules', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'room_id': self.room_id,
+            'action_id': self.action_id,
+            'performed_timestamp': self.performed_timestamp.isoformat() if self.performed_timestamp else None,
+            'scheduled_date': self.scheduled_date.isoformat(),
+            'status': self.status
+        }
+
 
