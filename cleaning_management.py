@@ -113,40 +113,7 @@ def remove_cleaning_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 
-@cleaning_management_blueprint.route('/mark_task_completed', methods=['POST'])
-def mark_task_completed():
-    data = request.get_json()
-    task_id = data.get('task_id')
-    completed_date = data.get('completed_date')
-    task_status = data.get('task_status')
 
-    if not task_id or not completed_date:
-        return jsonify({"error": "Task ID and completed date are required"}), 400
-
-    try:
-        completed_date = datetime.strptime(completed_date, '%Y-%m-%d').date()
-
-        # Fetch the task and mark it as completed
-        task = CleaningSchedule.query.get(task_id)
-        if not task:
-            return jsonify({"error": "Cleaning task not found"}), 404
-
-        # task.status = 'completed'
-        task.performed_timestamp = datetime.utcnow()
-        db.session.commit()
-
-        # Now reschedule future tasks for the same room and cleaning action
-        reschedule_response = reschedule_future_tasks(task.room_id, task.action_id, completed_date)
-        if reschedule_response.status_code != 200:
-            raise Exception(reschedule_response.json()['error'])
-
-        return jsonify({"message": "Task marked as completed and future tasks rescheduled"}), 200
-
-    except ValueError:
-        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD"}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
 
 
 # Schedule cleaning for a single room
@@ -207,14 +174,20 @@ def schedule_room_cleaning_for(room_id, start_date, days):
         cleaning_actions = CleaningAction.query.all()
         room = Room.query.get(room_id)
 
-        if not room:
-            return {"error": "Room not found"}, None
+        if not room: return {"error": "Room not found"}, None
+
+        # Delete existing cleaning tasks for the room within the date range
+        CleaningSchedule.query.filter(
+            CleaningSchedule.room_id == room_id,
+            CleaningSchedule.scheduled_date >= start_date,
+            CleaningSchedule.scheduled_date <= start_date + timedelta(days=days-1)
+        ).delete()
 
         # Fetch reservations for this room in the given date range
         reservations = Reservation.query.filter(
             Reservation.room_id == room.id,
             Reservation.end_date >= start_date,
-            Reservation.start_date <= start_date + timedelta(days=days)
+            Reservation.start_date <= start_date + timedelta(days=days-1)
         ).order_by(Reservation.start_date).all()
 
         for reservation in reservations:
@@ -226,7 +199,8 @@ def schedule_room_cleaning_for(room_id, start_date, days):
             while current_date <= check_out_date:
                 for action in cleaning_actions:
                     # Schedule cleaning task for each day of stay, based on action frequency
-                    if (current_date - check_in_date).days % action.frequency_days == 0 or current_date == check_out_date:
+                    if (
+                            current_date - check_in_date).days % action.frequency_days == 0 or current_date == check_out_date:
                         new_schedule = CleaningSchedule(
                             room_id=room.id,
                             action_id=action.id,
@@ -246,20 +220,51 @@ def schedule_room_cleaning_for(room_id, start_date, days):
         return None, {"error": str(e)}
 
 
-
-@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])
-def reschedule_future_tasks(room_id, action_id,
-                            completed_date):  # Reschedule future tasks for a room and cleaning action if a task is completed early
+@cleaning_management_blueprint.route('/toggle_task_status/<int:id>', methods=['POST'])
+def change_task_status(id):
     data = request.get_json()
-    room_id = data.get('room_id')
-    action_id = data.get('action_id')
-    completed_date = data.get('completed_date')
+    task_status = data.get('task_status')
+    completed_date_str = data.get('completed_date')
+
+    if not id or not completed_date_str:
+        return jsonify({"error": "Task ID and completed date are required"}), 400
+
+    try:
+        # Properly parse the datetime string
+        #completed_date = datetime.strptime(completed_date_str, '%Y-%m-%d %H:%M')
+
+        task = CleaningSchedule.query.get(id)
+        if not task:
+            return jsonify({"error": "Cleaning task not found"}), 404
+
+        task.status = task_status
+        task.performed_timestamp = datetime.utcnow() if task_status == 'completed' else None
+
+        reschedule_message, reschedule_status_code = reschedule_future_tasks_helper(task.room_id, task.action_id, completed_date_str)
+        if reschedule_status_code != 200:
+            db.session.rollback()
+            return jsonify(reschedule_message), reschedule_status_code
+
+        db.session.commit()
+        return jsonify({"message": "Task marked as completed and future tasks rescheduled"}), 200
+
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD HH:MM"}), 400
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+def reschedule_future_tasks_helper(room_id, action_id, completed_date):
 
     if not all([room_id, action_id, completed_date]):
         return jsonify({"error": "Missing required parameters"}), 400
 
     try:
-        completed_date = datetime.strptime(completed_date, '%Y-%m-%d').date()
+        completed_date = datetime.strptime(completed_date, '%Y-%m-%d %H:%M').date()
 
         # Fetch the cleaning action's frequency
         action = CleaningAction.query.get(action_id)
@@ -286,14 +291,28 @@ def reschedule_future_tasks(room_id, action_id,
                 db.session.delete(task)
 
         db.session.commit()
-        return jsonify({"message": "Future tasks rescheduled successfully"}), 200
+        return {"message": "Future tasks rescheduled successfully"}, 200
 
-    except ValueError:
-        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD"}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        print(e)
+        return {"error": str(e)}, 500
 
+
+# Flask route that uses the helper function
+@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])
+def reschedule_future_tasks():
+    data = request.get_json()
+    room_id = data.get('room_id')
+    action_id = data.get('action_id')
+    completed_date = data.get('completed_date')
+
+    # Validate inputs
+    if not all([room_id, action_id, completed_date]):
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    message, status_code = reschedule_future_tasks_helper(room_id, action_id, completed_date)
+    return jsonify(message), status_code
 
 def _find_next_available_date(start_date, frequency_days, room_id, action_id):
     """Find the next available date for scheduling, skipping dates with conflicts."""
@@ -320,4 +339,3 @@ def get_cleaning_actions():
     except Exception as e:
         print("Exception occurred:", e)
         return jsonify({'error': str(e)}), 500
-
