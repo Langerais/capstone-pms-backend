@@ -147,7 +147,6 @@ def schedule_room_cleaning():
 def schedule_cleaning():
     data = request.get_json()
     start_date = data.get('start_date')
-    days = data.get('days', 7)
 
     if not start_date:
         return jsonify({"error": "Start date is required"}), 400
@@ -157,7 +156,7 @@ def schedule_cleaning():
         rooms = Room.query.all()
 
         for room in rooms:
-            success, error = schedule_room_cleaning_for(room.id, start_date, days)
+            success, error = schedule_room_cleaning_for(room.id, start_date)
             if error:
                 raise Exception(error['error'])
 
@@ -166,58 +165,68 @@ def schedule_cleaning():
         return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD"}), 400
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 
-def schedule_room_cleaning_for(room_id, start_date, days):
+# Helper function to schedule cleaning for a single room for a specified date
+def schedule_room_cleaning_for(room_id, date_to_schedule):
     try:
-        cleaning_actions = CleaningAction.query.all()
-        room = Room.query.get(room_id)
+        # Ensure date_to_schedule is a date object
+        if isinstance(date_to_schedule, datetime):
+            date_to_schedule = date_to_schedule.date()
 
-        if not room: return {"error": "Room not found"}, None
-
-        # Delete existing cleaning tasks for the room within the date range
+        # Delete existing tasks for this room on the specified date
         CleaningSchedule.query.filter(
             CleaningSchedule.room_id == room_id,
-            CleaningSchedule.scheduled_date >= start_date,
-            CleaningSchedule.scheduled_date <= start_date + timedelta(days=days-1)
+            CleaningSchedule.scheduled_date == date_to_schedule
         ).delete()
 
-        # Fetch reservations for this room in the given date range
-        reservations = Reservation.query.filter(
-            Reservation.room_id == room.id,
-            Reservation.end_date >= start_date,
-            Reservation.start_date <= start_date + timedelta(days=days-1)
-        ).order_by(Reservation.start_date).all()
+        cleaning_actions = CleaningAction.query.all()
+        room = Room.query.get(room_id)
+        if not room:
+            return {"error": "Room not found"}, None
 
-        for reservation in reservations:
-            check_in_date = reservation.start_date
-            check_out_date = reservation.end_date
+        max_frequency = max(action.frequency_days for action in cleaning_actions)
+        check_start_date = date_to_schedule - timedelta(days=max_frequency + 1)
 
-            # Schedule cleaning for each day of the stay
-            current_date = check_in_date
-            while current_date <= check_out_date:
-                for action in cleaning_actions:
-                    # Schedule cleaning task for each day of stay, based on action frequency
-                    if (
-                            current_date - check_in_date).days % action.frequency_days == 0 or current_date == check_out_date:
-                        new_schedule = CleaningSchedule(
-                            room_id=room.id,
-                            action_id=action.id,
-                            scheduled_date=current_date,
-                            performed_timestamp=None
-                        )
-                        db.session.add(new_schedule)
+        recent_or_pending_tasks = CleaningSchedule.query.filter(
+            CleaningSchedule.room_id == room_id,
+            CleaningSchedule.scheduled_date.between(check_start_date, date_to_schedule - timedelta(days=1)),
+        ).all()
 
-                current_date += timedelta(days=1)
+        recent_or_pending_tasks_dict = {task.action_id: task for task in recent_or_pending_tasks}
+
+        if not recent_or_pending_tasks:
+            for action in cleaning_actions:
+                schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
+        else:
+            for action in cleaning_actions:
+                last_completed_or_scheduled = recent_or_pending_tasks_dict.get(action.id)
+                if should_schedule_task(last_completed_or_scheduled, action.frequency_days, date_to_schedule):
+                    schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
 
         db.session.commit()
-        return {"message": f"Cleaning scheduled for Room {room_id} successfully"}, None
-    except ValueError as e:
-        return None, {"error": "Invalid date format. Please use YYYY-MM-DD"}
+        return {"message": f"Cleaning tasks scheduled for Room {room_id} on {date_to_schedule}"}, None
     except Exception as e:
         db.session.rollback()
         return None, {"error": str(e)}
+
+def schedule_cleaning_task(room_id, action_id, scheduled_date, status):
+    new_task = CleaningSchedule(
+        room_id=room_id,
+        action_id=action_id,
+        scheduled_date=scheduled_date,
+        status=status
+    )
+    db.session.add(new_task)
+
+def should_schedule_task(last_task, frequency, target_date):
+    if last_task is None or last_task.status == 'pending':
+        return True
+    return (target_date - last_task.scheduled_date).days >= frequency
+
+
 
 
 @cleaning_management_blueprint.route('/toggle_task_status/<int:id>', methods=['POST'])
