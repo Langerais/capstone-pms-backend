@@ -113,9 +113,6 @@ def remove_cleaning_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 
-
-
-
 # Schedule cleaning for a single room
 @cleaning_management_blueprint.route('/schedule_room_cleaning', methods=['POST'])
 def schedule_room_cleaning():
@@ -202,6 +199,11 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
             for action in cleaning_actions:
                 schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
 
+        elif not current_reservation:
+            for action in cleaning_actions:
+                if not was_task_performed(room_id, action.id, get_last_checkout_date_before(room_id, date_to_schedule), date_to_schedule):
+                    schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
+
         # If the room is occupied and it's not the check-in date, schedule tasks based on frequency
         elif current_reservation and date_to_schedule > current_reservation.start_date:
             for action in cleaning_actions:
@@ -215,6 +217,7 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
         db.session.rollback()
         return None, {"error": str(e)}
 
+
 def schedule_cleaning_task(room_id, action_id, scheduled_date, status):
     new_schedule = CleaningSchedule(
         room_id=room_id,
@@ -224,12 +227,66 @@ def schedule_cleaning_task(room_id, action_id, scheduled_date, status):
     )
     db.session.add(new_schedule)
 
-def should_schedule_task(last_task, frequency, target_date):
-    if last_task is None or last_task.status == 'pending':
-        return True
-    return (target_date - last_task.scheduled_date).days >= frequency
+
+def was_task_performed(room_id, action_id, last_checkout_date, check_until_date):
+    """
+    Checks if a cleaning task was performed for a room between the last checkout date and a specified date.
+
+    :param room_id: The ID of the room.
+    :param action_id: The ID of the cleaning action.
+    :param last_checkout_date: The last checkout date to start checking from.
+    :param check_until_date: The date until which to check.
+    :return: True if the task was performed, False otherwise.
+    """
+    # Ensure dates are in the correct format (date objects)
+    if isinstance(last_checkout_date, datetime):
+        last_checkout_date = last_checkout_date.date()
+    if isinstance(check_until_date, datetime):
+        check_until_date = check_until_date.date()
+
+    # Check each day from last checkout to the specified date
+    current_date = last_checkout_date
+    while current_date <= check_until_date:
+        # Query to check if task was completed on current_date
+        task_completed = CleaningSchedule.query.filter_by(
+            room_id=room_id,
+            action_id=action_id,
+            scheduled_date=current_date,
+            status='completed'
+        ).first()
+
+        if task_completed:
+            return True
+
+        # Move to the next day
+        current_date += timedelta(days=1)
+
+    return False
 
 
+def get_last_checkout_date_before(room_id, given_date):
+    """
+    Finds the last checkout date for a specific room before a given date.
+
+    :param room_id: The ID of the room.
+    :param given_date: The date before which to find the last checkout.
+    :return: The last checkout date or None if no checkout is found.
+    """
+    # Ensure given_date is in the correct format (date object)
+    if isinstance(given_date, datetime):
+        given_date = given_date.date()
+
+    # Check if given_date is None
+    if given_date is None:
+        raise ValueError("The given date is None. A valid date is required.")
+
+    # Query to find the last reservation ending before the given date
+    last_reservation = Reservation.query.filter(
+        Reservation.room_id == room_id,
+        Reservation.end_date < given_date
+    ).order_by(Reservation.end_date.desc()).first()
+
+    return last_reservation.end_date if last_reservation and last_reservation.end_date else given_date - timedelta(days=7)
 
 
 @cleaning_management_blueprint.route('/toggle_task_status/<int:id>', methods=['POST'])
@@ -243,7 +300,7 @@ def change_task_status(id):
 
     try:
         # Properly parse the datetime string
-        #completed_date = datetime.strptime(completed_date_str, '%Y-%m-%d %H:%M')
+        # completed_date = datetime.strptime(completed_date_str, '%Y-%m-%d %H:%M')
 
         task = CleaningSchedule.query.get(id)
         if not task:
@@ -251,11 +308,6 @@ def change_task_status(id):
 
         task.status = task_status
         task.performed_timestamp = datetime.utcnow() if task_status == 'completed' else None
-
-        reschedule_message, reschedule_status_code = reschedule_future_tasks_helper(task.room_id, task.action_id, completed_date_str)
-        if reschedule_status_code != 200:
-            db.session.rollback()
-            return jsonify(reschedule_message), reschedule_status_code
 
         db.session.commit()
         return jsonify({"message": "Task marked as completed and future tasks rescheduled"}), 200
@@ -268,10 +320,7 @@ def change_task_status(id):
         return jsonify({"error": str(e)}), 500
 
 
-
-
 def reschedule_future_tasks_helper(room_id, action_id, completed_date):
-
     if not all([room_id, action_id, completed_date]):
         return jsonify({"error": "Missing required parameters"}), 400
 
@@ -325,6 +374,7 @@ def reschedule_future_tasks():
 
     message, status_code = reschedule_future_tasks_helper(room_id, action_id, completed_date)
     return jsonify(message), status_code
+
 
 def _find_next_available_date(start_date, frequency_days, room_id, action_id):
     """Find the next available date for scheduling, skipping dates with conflicts."""
