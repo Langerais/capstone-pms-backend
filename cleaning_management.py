@@ -197,7 +197,13 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
 
         recent_or_pending_tasks_dict = {task.action_id: task for task in recent_or_pending_tasks}
 
-        if not recent_or_pending_tasks:
+        # Check for departure on the date_to_schedule
+        is_departure_today = Reservation.query.filter(
+            Reservation.room_id == room_id,
+            Reservation.end_date == date_to_schedule
+        ).count() > 0
+
+        if is_departure_today or not recent_or_pending_tasks:
             for action in cleaning_actions:
                 schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
         else:
