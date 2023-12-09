@@ -176,56 +176,53 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
         if isinstance(date_to_schedule, datetime):
             date_to_schedule = date_to_schedule.date()
 
-        # Delete existing tasks for this room on the specified date
-        CleaningSchedule.query.filter(
-            CleaningSchedule.room_id == room_id,
-            CleaningSchedule.scheduled_date == date_to_schedule
-        ).delete()
-
         cleaning_actions = CleaningAction.query.all()
         room = Room.query.get(room_id)
         if not room:
             return {"error": "Room not found"}, None
 
-        max_frequency = max(action.frequency_days for action in cleaning_actions)
-        check_start_date = date_to_schedule - timedelta(days=max_frequency + 1)
-
-        recent_or_pending_tasks = CleaningSchedule.query.filter(
-            CleaningSchedule.room_id == room_id,
-            CleaningSchedule.scheduled_date.between(check_start_date, date_to_schedule - timedelta(days=1)),
-        ).all()
-
-        recent_or_pending_tasks_dict = {task.action_id: task for task in recent_or_pending_tasks}
-
-        # Check for departure on the date_to_schedule
-        is_departure_today = Reservation.query.filter(
+        # Fetch the reservation that includes the date_to_schedule
+        current_reservation = Reservation.query.filter(
             Reservation.room_id == room_id,
-            Reservation.end_date == date_to_schedule
-        ).count() > 0
+            Reservation.start_date <= date_to_schedule,
+            Reservation.end_date >= date_to_schedule
+        ).first()
 
-        if is_departure_today or not recent_or_pending_tasks:
+        # Check if there's a check-out on date_to_schedule (Mandatory full cleaning)
+        is_checkout_today = current_reservation and current_reservation.end_date == date_to_schedule
+
+        # Delete existing tasks for this room on the specified date (To avoid duplicates)
+        CleaningSchedule.query.filter(
+            CleaningSchedule.room_id == room_id,
+            CleaningSchedule.scheduled_date == date_to_schedule
+        ).delete()
+
+        # Schedule full cleaning if there's a check-out today
+        if is_checkout_today:
             for action in cleaning_actions:
                 schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
-        else:
+
+        # If the room is occupied and it's not the check-in date, schedule tasks based on frequency
+        elif current_reservation and date_to_schedule > current_reservation.start_date:
             for action in cleaning_actions:
-                last_completed_or_scheduled = recent_or_pending_tasks_dict.get(action.id)
-                if should_schedule_task(last_completed_or_scheduled, action.frequency_days, date_to_schedule):
+                days_since_check_in = (date_to_schedule - current_reservation.start_date).days
+                if days_since_check_in % action.frequency_days == 0:
                     schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
 
         db.session.commit()
-        return {"message": f"Cleaning tasks scheduled for Room {room_id} on {date_to_schedule}"}, None
+        return {"message": f"Cleaning scheduled for Room {room_id} on {date_to_schedule}"}, None
     except Exception as e:
         db.session.rollback()
         return None, {"error": str(e)}
 
 def schedule_cleaning_task(room_id, action_id, scheduled_date, status):
-    new_task = CleaningSchedule(
+    new_schedule = CleaningSchedule(
         room_id=room_id,
         action_id=action_id,
         scheduled_date=scheduled_date,
         status=status
     )
-    db.session.add(new_task)
+    db.session.add(new_schedule)
 
 def should_schedule_task(last_task, frequency, target_date):
     if last_task is None or last_task.status == 'pending':
