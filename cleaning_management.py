@@ -199,7 +199,7 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
             for action in cleaning_actions:
                 schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
 
-        elif not current_reservation:
+        elif not current_reservation or date_to_schedule == current_reservation.start_date:
             for action in cleaning_actions:
                 if not was_task_performed(room_id, action.id, get_last_checkout_date_before(room_id, date_to_schedule), date_to_schedule):
                     schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
