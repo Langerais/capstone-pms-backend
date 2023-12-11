@@ -5,7 +5,7 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-# TODO: Add models: Restaurant/Bar order, Notification (?), Cleaning action (?);
+# TODO: Add models: Notification (?);
 
 
 class Room(db.Model):

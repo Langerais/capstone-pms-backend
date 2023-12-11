@@ -622,6 +622,15 @@ def _find_next_available_date(start_date, frequency_days, room_id, action_id):
     return new_date
 
 
+@cleaning_management_blueprint.route('/get_cleaning_action/<int:action_id>', methods=['GET'])
+def get_cleaning_action(action_id):
+    action = CleaningAction.query.get(action_id)
+    if action:
+        return jsonify(action.to_dict()), 200
+    return jsonify({"msg": "Cleaning action not found"}), 404
+
+
+
 @cleaning_management_blueprint.route('/get_cleaning_actions', methods=['GET'])
 def get_cleaning_actions():
     """
@@ -640,8 +649,8 @@ def get_cleaning_actions():
         # Debug logging statement - useful for monitoring the function's execution
         print("get cleaning actions")
 
-        # Query the database to retrieve all cleaning action entries
-        actions = CleaningAction.query.all()
+        # Query the database to retrieve all cleaning action entries in ascending order by ID
+        actions = CleaningAction.query.order_by(CleaningAction.id).all()
 
         # Debug logging statement - indicates successful retrieval of data
         print("got cleaning actions")
@@ -654,3 +663,76 @@ def get_cleaning_actions():
         print("Exception occurred:", e)
         return jsonify({'error': str(e)}), 500
 
+
+@cleaning_management_blueprint.route('/create_cleaning_action', methods=['POST'])
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
+def create_cleaning_action():
+    data = request.get_json()
+    action_name = data.get('action_name')
+    frequency_days = data.get('frequency_days')
+
+    if not action_name or frequency_days is None:
+        return jsonify({"msg": "Missing action name or frequency"}), 400
+
+    new_action = CleaningAction(action_name=action_name, frequency_days=frequency_days)
+
+    try:
+        db.session.add(new_action)
+        db.session.commit()
+        return jsonify(new_action.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@cleaning_management_blueprint.route('/remove_cleaning_action/<int:action_id>', methods=['DELETE'])
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
+def remove_cleaning_action(action_id):
+    action = CleaningAction.query.get(action_id)
+    if action:
+        try:
+
+            # Delete all related scheduled tasks
+            CleaningSchedule.query.filter_by(action_id=action_id).delete()
+
+            db.session.delete(action)
+            db.session.commit()
+            return jsonify({"msg": "Action removed"}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"msg": "Action not found"}), 404
+
+
+@cleaning_management_blueprint.route('/modify_cleaning_action/<int:action_id>', methods=['PUT'])
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
+def modify_cleaning_action(action_id):
+    print("modify cleaning action" + str(action_id))
+    action = CleaningAction.query.get(action_id)
+    #print("action " + str(action.id) + " " + str(action.action_name) + " " + str(action.frequency_days))
+    if action:
+        data = request.get_json()
+        action_name = data.get('action_name')
+        frequency_days = data.get('frequency_days')
+        print("data " + str(action_name) + " " + str(frequency_days))
+
+        if action_name is not None:
+            action.action_name = action_name
+        if frequency_days is not None:
+            action.frequency_days = frequency_days
+
+        try:
+            db.session.commit()
+
+            #print("action " + str(action.id) + " " + str(action.action_name) + " " + str(action.frequency_days))
+            return jsonify(action.to_dict()), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+    else:
+        print(action.action_name + " " + str(action_id))
+        return jsonify({"msg": "Action not found"}), 404

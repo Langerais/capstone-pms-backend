@@ -1,10 +1,10 @@
 from decimal import Decimal
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required  # Will be used later
 
-from auth import requires_roles
-from models import db, MenuCategory, MenuItem, Balance  # Assuming models are defined in models.py
+from auth import requires_roles  # Will be used later
+from models import db, MenuCategory, MenuItem, Balance
 from datetime import datetime
 
 menu_management_blueprint = Blueprint('menu_management', __name__)
@@ -12,8 +12,8 @@ menu_management_blueprint = Blueprint('menu_management', __name__)
 
 # Category management
 @menu_management_blueprint.route('/create_category', methods=['POST'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def create_category():
     data = request.get_json()
     name = data.get('name')
@@ -33,8 +33,8 @@ def create_category():
 
 
 @menu_management_blueprint.route('/remove_category/<int:category_id>', methods=['DELETE'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def remove_category(category_id):
     category = MenuCategory.query.get(category_id)
     if category:
@@ -50,8 +50,8 @@ def remove_category(category_id):
 
 
 @menu_management_blueprint.route('/modify_category/<int:category_id>', methods=['PUT'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def modify_category(category_id):
     category = MenuCategory.query.get(category_id)
     if category:
@@ -70,7 +70,6 @@ def modify_category(category_id):
         return jsonify({"msg": "Category not found"}), 404
 
 
-
 @menu_management_blueprint.route('/get_categories', methods=['GET'])
 def get_categories():  # TESTED OK
     categories = MenuCategory.query.filter(MenuCategory.id != -1, MenuCategory.id != 0).all()
@@ -79,8 +78,8 @@ def get_categories():  # TESTED OK
 
 # Menu item management
 @menu_management_blueprint.route('/create_item', methods=['POST'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def create_item():  # TESTED OK
     data = request.get_json()
     name = data.get('name')
@@ -103,8 +102,8 @@ def create_item():  # TESTED OK
 
 
 @menu_management_blueprint.route('/remove_item/<int:item_id>', methods=['DELETE'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def remove_item(item_id):
     item = MenuItem.query.get(item_id)
     if item:
@@ -120,8 +119,8 @@ def remove_item(item_id):
 
 
 @menu_management_blueprint.route('/modify_item/<int:item_id>', methods=['PUT'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def modify_item(item_id):
     item = MenuItem.query.get(item_id)
     if item:
@@ -153,8 +152,7 @@ def modify_item(item_id):
 @menu_management_blueprint.route('/get_items', methods=['GET'])
 def get_items():  # TESTED OK
     items = MenuItem.query.filter(MenuItem.id != -1, MenuItem.id != 0).all()
-    return jsonify([item.to_dict() for item in items]), 200\
-
+    return jsonify([item.to_dict() for item in items]), 200
 
 
 @menu_management_blueprint.route('/get_item/<int:item_id>', methods=['GET'])
@@ -167,7 +165,7 @@ def get_menu_item(item_id):  # TESTED OK
 
 
 @menu_management_blueprint.route('/get_items_by_category/<int:category_id>', methods=['GET'])
-def get_items_by_category(category_id): # TESTED OK
+def get_items_by_category(category_id):  # TESTED OK
     items = MenuItem.query.filter_by(category_id=category_id).filter(MenuItem.id != -1, MenuItem.id != 0).all()
     if items:
         return jsonify([item.to_dict() for item in items]), 200
@@ -187,7 +185,8 @@ def create_balance_entry():  # TESTED OK
     if reservation_id is None:
         return jsonify({"msg": "Missing required balance data"}), 400
 
-    new_balance_entry = Balance(reservation_id=reservation_id, menu_item_id=menu_item_id, amount=amount, number_of_items=number_of_items)
+    new_balance_entry = Balance(reservation_id=reservation_id, menu_item_id=menu_item_id, amount=amount,
+                                number_of_items=number_of_items)
 
     try:
         db.session.add(new_balance_entry)
@@ -199,16 +198,16 @@ def create_balance_entry():  # TESTED OK
 
 
 @menu_management_blueprint.route('/get_balance_entries', methods=['GET'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_balance_entries():
     balance_entries = Balance.query.all()
     return jsonify([entry.to_dict() for entry in balance_entries]), 200
 
 
 @menu_management_blueprint.route('/get_balance_entries/<int:reservation_id>', methods=['GET'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_balance_entries_for_reservation(reservation_id):
     balance_entries = Balance.query.filter_by(reservation_id=reservation_id).all()
     if balance_entries:
@@ -218,8 +217,8 @@ def get_balance_entries_for_reservation(reservation_id):
 
 
 @menu_management_blueprint.route('/remove_balance_entry/<int:balance_entry_id>', methods=['DELETE'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def remove_balance_entry(balance_entry_id):
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
@@ -234,10 +233,9 @@ def remove_balance_entry(balance_entry_id):
         return jsonify({"msg": "Balance entry not found"}), 404
 
 
-
 @menu_management_blueprint.route('/modify_balance_entry/<int:balance_entry_id>', methods=['PUT'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager')
 def modify_balance_entry(balance_entry_id):
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
@@ -264,8 +262,8 @@ def modify_balance_entry(balance_entry_id):
 
 
 @menu_management_blueprint.route('/add_payment', methods=['POST'])
-#@jwt_required()
-#@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
+# @jwt_required()
+# @requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def add_payment():  # Guest payment
     data = request.get_json()
     reservation_id = data.get('reservation_id')
@@ -273,7 +271,8 @@ def add_payment():  # Guest payment
     payment_method = data.get('payment_method')  # "cash" or "card"
 
     # Check for valid reservation ID, payment amount, and payment method
-    if reservation_id is None or payment_amount is None or payment_method not in ["CASH", "CARD"] or payment_amount == 0:
+    if reservation_id is None or payment_amount is None or payment_method not in ["CASH",
+                                                                                  "CARD"] or payment_amount == 0:
         return jsonify({"msg": "Missing or invalid payment data"}), 400
 
     try:
@@ -297,8 +296,3 @@ def add_payment():  # Guest payment
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-
-
-
-
