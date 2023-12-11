@@ -592,7 +592,7 @@ def reschedule_future_tasks_helper(room_id, action_id, completed_date):
 
 
 # Flask route that uses the helper function
-@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])      # TODO: Do I need this?
+@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])  # TODO: Do I need this?
 def reschedule_future_tasks():
     data = request.get_json()
     room_id = data.get('room_id')
@@ -628,7 +628,6 @@ def get_cleaning_action(action_id):
     if action:
         return jsonify(action.to_dict()), 200
     return jsonify({"msg": "Cleaning action not found"}), 404
-
 
 
 @cleaning_management_blueprint.route('/get_cleaning_actions', methods=['GET'])
@@ -668,6 +667,17 @@ def get_cleaning_actions():
 # @jwt_required()
 # @requires_roles('Admin', 'Manager')
 def create_cleaning_action():
+    """
+    Creates a new cleaning action.
+
+    This route processes POST requests to add a new cleaning action to the database.
+    It requires JSON data containing 'action_name' and 'frequency_days'.
+
+    Returns:
+        JSON response with the created action data and a 201 status code on success.
+        JSON response with an error message and a 400 status code if data is missing.
+        JSON response with an error message and a 500 status code on server error.
+    """
     data = request.get_json()
     action_name = data.get('action_name')
     frequency_days = data.get('frequency_days')
@@ -690,13 +700,21 @@ def create_cleaning_action():
 # @jwt_required()
 # @requires_roles('Admin', 'Manager')
 def remove_cleaning_action(action_id):
+    """
+    Deletes a cleaning action and its related scheduled tasks.
+
+    This route processes DELETE requests to remove a specific cleaning action
+    identified by 'action_id'. It also deletes any associated scheduled tasks.
+
+    Returns:
+        JSON response with a success message and a 200 status code on successful deletion.
+        JSON response with an error message and a 404 status code if the action is not found.
+        JSON response with an error message and a 500 status code on server error.
+    """
     action = CleaningAction.query.get(action_id)
     if action:
         try:
-
-            # Delete all related scheduled tasks
             CleaningSchedule.query.filter_by(action_id=action_id).delete()
-
             db.session.delete(action)
             db.session.commit()
             return jsonify({"msg": "Action removed"}), 200
@@ -711,14 +729,23 @@ def remove_cleaning_action(action_id):
 # @jwt_required()
 # @requires_roles('Admin', 'Manager')
 def modify_cleaning_action(action_id):
-    print("modify cleaning action" + str(action_id))
+    """
+    Modifies an existing cleaning action.
+
+    This route processes PUT requests to update the details of a cleaning action
+    identified by 'action_id'. It expects JSON data with updated 'action_name'
+    and/or 'frequency_days'.
+
+    Returns:
+        JSON response with the updated action data and a 200 status code on success.
+        JSON response with an error message and a 404 status code if the action is not found.
+        JSON response with an error message and a 500 status code on server error.
+    """
     action = CleaningAction.query.get(action_id)
-    #print("action " + str(action.id) + " " + str(action.action_name) + " " + str(action.frequency_days))
     if action:
         data = request.get_json()
         action_name = data.get('action_name')
         frequency_days = data.get('frequency_days')
-        print("data " + str(action_name) + " " + str(frequency_days))
 
         if action_name is not None:
             action.action_name = action_name
@@ -727,12 +754,9 @@ def modify_cleaning_action(action_id):
 
         try:
             db.session.commit()
-
-            #print("action " + str(action.id) + " " + str(action.action_name) + " " + str(action.frequency_days))
             return jsonify(action.to_dict()), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
     else:
-        print(action.action_name + " " + str(action_id))
         return jsonify({"msg": "Action not found"}), 404
