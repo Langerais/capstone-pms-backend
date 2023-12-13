@@ -253,7 +253,7 @@ def schedule_room_cleaning():
 
         # Fetch the room details and schedule cleaning
         room = room_management.get_room(room_id)
-        success, error = schedule_room_cleaning_for(room.id, start_date, days)
+        success, error = schedule_room_cleaning_for(room.id, start_date)  # Removed 'days' parameter
 
         # Handle any errors during scheduling
         if error:

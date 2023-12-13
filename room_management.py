@@ -7,7 +7,7 @@ room_management_blueprint = Blueprint('room_management', __name__)
 
 
 @room_management_blueprint.route('/create_room', methods=['POST'])
-def create_room(): # TODO: TEST
+def create_room():  # TODO: TEST
     data = request.get_json()
     channel_manager_id = data.get('channel_manager_id')
     room_name = data.get('room_name')
@@ -79,7 +79,7 @@ def edit_room(room_id): # TODO: TEST
 
 
 @room_management_blueprint.route('/update_room_status/<int:room_id>', methods=['PUT'])
-def update_room_status(room_id): # TODO: TEST
+def update_room_status(room_id):  # TODO: Remove this endpoint
     data = request.get_json()
     status = data.get('status')
 
@@ -99,7 +99,7 @@ def update_room_status(room_id): # TODO: TEST
 
 
 @room_management_blueprint.route('/get_room_status/<int:room_id>', methods=['GET'])
-def get_room_status(room_id): # TODO: TEST
+def get_room_status(room_id):  # TODO: Remove this endpoint
     latest_status = RoomCleaningStatus.query \
         .filter_by(room_id=room_id) \
         .order_by(RoomCleaningStatus.updated_at.desc()) \

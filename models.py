@@ -12,7 +12,7 @@ class Room(db.Model):
     __tablename__ = 'rooms'  # Explicitly specify the table name
 
     id = db.Column(db.Integer, primary_key=True)
-    channel_manager_id = db.Column(db.String(255))
+    channel_manager_id = db.Column(db.String(255), unique=True)
     room_name = db.Column(db.String(255))
     max_guests = db.Column(db.Integer)
     number_of_beds = db.Column(db.Integer)
@@ -38,7 +38,7 @@ class RoomCleaningStatus(db.Model):  # TODO: Remove this model
 class Guest(db.Model):
     __tablename__ = 'guests'
     id = db.Column(db.Integer, primary_key=True)
-    channel_manager_id = db.Column(db.String(255))
+    channel_manager_id = db.Column(db.String(255), unique=True, default=None)
     name = db.Column(db.String(100), nullable=False)
     surname = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
@@ -58,12 +58,13 @@ class Guest(db.Model):
 class Reservation(db.Model):
     __tablename__ = 'reservations'
     id = db.Column(db.Integer, primary_key=True)
-    channel_manager_id = db.Column(db.String(255))
+    channel_manager_id = db.Column(db.String(255), unique=True, nullable=True)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'))
     due_amount = db.Column(db.Numeric(10, 2))
+    status = db.Column(db.Enum('waiting', 'arrived', 'left', name='reservation_status'), default='waiting')
 
     def to_dict(self):
         return {
@@ -73,7 +74,8 @@ class Reservation(db.Model):
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'room_id': self.room_id,
             'guest_id': self.guest_id,
-            'due_amount': str(self.due_amount)
+            'due_amount': str(self.due_amount),
+            'status': self.status if self.status else None
         }
 
 
