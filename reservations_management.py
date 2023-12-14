@@ -89,8 +89,6 @@ def get_reservations():  # TESTED: OK
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
 
 
-# TODO: get_guest_reservations(guest_id)
-
 
 @reservations_management_blueprint.route('/get_guest_reservations/<int:guest_id>', methods=['GET'])
 def get_guest_reservations(guest_id):  # TESTED: OK
@@ -105,6 +103,27 @@ def get_reservations_by_date_range():  # TESTED: OK
     end_date = request.args.get('end_date')
     reservations = Reservation.query.filter(Reservation.start_date <= end_date, Reservation.end_date >= start_date)
     return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
+
+@reservations_management_blueprint.route('/get_reservations_by_room_and_date_range', methods=['GET'])
+def get_reservations_by_room_and_date_range():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    room_id = request.args.get('room_id')
+
+    try:
+        room_id = int(room_id)  # Convert room_id to integer
+    except ValueError:
+        return jsonify({"error": "Invalid room_id"}), 400
+
+    reservations = Reservation.query.filter(
+        Reservation.start_date <= end_date,
+        Reservation.end_date >= start_date,
+        Reservation.room_id == room_id
+    ).all()
+
+    return jsonify([reservation.to_dict() for reservation in reservations]), 200
+
 
 
 # Calculate the unpaid amount for a given reservation (Restaurant only)
