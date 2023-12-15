@@ -71,6 +71,28 @@ def modify_reservation(reservation_id):  # TODO: TEST
 # -H "Content-Type: application/json" \
 # -d '{"channel_manager_id": "newID", "due_amount": 300.00}'
 
+@reservations_management_blueprint.route('/change_reservation_status/<int:reservation_id>', methods=['PUT'])
+def change_reservation_status(reservation_id):
+    reservation = Reservation.query.get(reservation_id)
+    if not reservation:
+        return jsonify({"msg": "Reservation not found"}), 404
+
+    data = request.get_json()
+    new_status = data.get('status')
+
+    # You may want to validate the new status here if necessary
+    if new_status not in ['Pending', 'Checked-in', 'Checked-out']:
+        return jsonify({"error": "Invalid status"}), 400
+
+    reservation.status = new_status
+
+    try:
+        db.session.commit()
+        return jsonify({"msg": "Reservation status updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 @reservations_management_blueprint.route('/get_reservation/<int:reservation_id>', methods=['GET'])
 def get_reservation(reservation_id):  # TODO: TEST
     reservation = Reservation.query.get(reservation_id)

@@ -14,7 +14,7 @@ class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     channel_manager_id = db.Column(db.String(255), unique=True)
     room_name = db.Column(db.String(255))
-    max_guests = db.Column(db.Integer)
+    max_guests = db.Column(db.Integer, default=2)
     number_of_beds = db.Column(db.Integer)
 
     def to_dict(self):
@@ -64,7 +64,7 @@ class Reservation(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'))
     due_amount = db.Column(db.Numeric(10, 2))
-    status = db.Column(db.Enum('waiting', 'arrived', 'left', name='reservation_status'), default='waiting')
+    status = db.Column(db.Enum('Pending', 'Checked-in', 'Checked-out', name='reservation_status'), default='Pending')
 
     def to_dict(self):
         return {
