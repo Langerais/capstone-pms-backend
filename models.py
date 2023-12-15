@@ -65,6 +65,7 @@ class Reservation(db.Model):
     guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'))
     due_amount = db.Column(db.Numeric(10, 2))
     status = db.Column(db.Enum('Pending', 'Checked-in', 'Checked-out', name='reservation_status'), default='Pending')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, default=6)  # 6-Admin (Temporary) TODO: Remove default value
 
     def to_dict(self):
         return {
@@ -75,7 +76,8 @@ class Reservation(db.Model):
             'room_id': self.room_id,
             'guest_id': self.guest_id,
             'due_amount': str(self.due_amount),
-            'status': self.status if self.status else None
+            'status': self.status if self.status else None,
+            'user_id': str(self.user_id)
         }
 
 

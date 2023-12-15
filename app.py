@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from getSecret import get_secret
 from sqlalchemy import text
+
+from logs import logging_blueprint
 from models import db
 from auth import auth_blueprint
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt
@@ -46,7 +48,7 @@ app.register_blueprint(room_management_blueprint, url_prefix='/rooms')
 app.register_blueprint(user_management_blueprint, url_prefix='/users')
 app.register_blueprint(menu_management_blueprint, url_prefix='/menu')
 app.register_blueprint(cleaning_management_blueprint, url_prefix='/cleaning_management')
-
+app.register_blueprint(logging_blueprint, url_prefix='/logging')
 
 
 @app.route('/test/admin', methods=['GET'])

@@ -9,8 +9,10 @@ allowing only authorized personnel (like Admin and Manager) to make changes to t
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required  # Will be used later
+
+import logs
 from auth import requires_roles  # Will be used later
-from models import db, MenuCategory, MenuItem, Balance
+from models import db, MenuCategory, MenuItem, Balance, Reservation, Room, User, Guest
 
 menu_management_blueprint = Blueprint('menu_management', __name__)
 
@@ -30,6 +32,10 @@ def create_category():
         - JSON response with error message and status code 400 if category name is missing.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     data = request.get_json()
     name = data.get('name')
 
@@ -41,6 +47,7 @@ def create_category():
     try:
         db.session.add(new_category)
         db.session.commit()
+        log_category(new_category, user.id, "Add MenuCategory")
         return jsonify(new_category.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -67,11 +74,16 @@ def remove_category(category_id):
         - JSON response with error message and status code 404 if category is not found.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     category = MenuCategory.query.get(category_id)
     if category:
         try:
             db.session.delete(category)
             db.session.commit()
+            log_category(category, user.id, "Delete MenuCategory")
             return jsonify({"msg": "Category removed"}), 200
         except Exception as e:
             db.session.rollback()
@@ -98,6 +110,10 @@ def modify_category(category_id):
         - JSON response with error message and status code 404 if the category is not found.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     category = MenuCategory.query.get(category_id)
     if category:
         data = request.get_json()
@@ -107,6 +123,7 @@ def modify_category(category_id):
 
         try:
             db.session.commit()
+            log_category(category, user.id, "Modify MenuCategory")
             return jsonify(category.to_dict()), 200
         except Exception as e:
             db.session.rollback()
@@ -146,6 +163,10 @@ def create_item():
         - JSON response with error message and status code 400 if required data is missing.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     data = request.get_json()
     name = data.get('name')
     category_id = data.get('category_id')
@@ -160,6 +181,9 @@ def create_item():
     try:
         db.session.add(new_item)
         db.session.commit()
+
+        log_item(new_item, user.id, 'Add MenuItem')
+
         return jsonify(new_item.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -183,11 +207,16 @@ def remove_item(item_id):
         - JSON response with error message and status code 404 if item is not found.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     item = MenuItem.query.get(item_id)
     if item:
         try:
             db.session.delete(item)
             db.session.commit()
+            log_item(item, user.id, 'Delete MenuItem')
             return jsonify({"msg": "Item removed"}), 200
         except Exception as e:
             db.session.rollback()
@@ -215,6 +244,11 @@ def modify_item(item_id):
         - JSON response with error message and status code 404 if the item is not found.
         - JSON response with error message and status code 500 on server error.
     """
+
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     item = MenuItem.query.get(item_id)
     if item:
         data = request.get_json()
@@ -234,6 +268,7 @@ def modify_item(item_id):
 
         try:
             db.session.commit()
+            log_item(item, user.id, 'Modify MenuItem')
             return jsonify(item.to_dict()), 200
         except Exception as e:
             db.session.rollback()
@@ -313,6 +348,11 @@ def create_balance_entry():
         - JSON response with error message and status code 400 if required data is missing.
         - JSON response with error message and status code 500 on server error.
     """
+
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     data = request.get_json()
     reservation_id = data.get('reservation_id')
     menu_item_id = data.get('menu_item_id', 0)  # Default 0 for payment
@@ -322,15 +362,25 @@ def create_balance_entry():
     if reservation_id is None:
         return jsonify({"msg": "Missing required balance data"}), 400
 
-    new_balance_entry = Balance(reservation_id=reservation_id, menu_item_id=menu_item_id, amount=amount,
-                                number_of_items=number_of_items)
+    new_balance_entry = Balance(
+        reservation_id=reservation_id,
+        menu_item_id=menu_item_id,
+        amount=amount,
+        number_of_items=number_of_items)
 
     try:
         db.session.add(new_balance_entry)
         db.session.commit()
+
+        # Determine the action type
+        action = "Add"
+        # Log the action with balance entry
+        log_balance_entry(new_balance_entry, user.id, action)
+
         return jsonify(new_balance_entry.to_dict()), 201
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 
@@ -392,11 +442,22 @@ def remove_balance_entry(balance_entry_id):
         - JSON response with error message and status code 404 if the balance entry is not found.
         - JSON response with error message and status code 500 on server error.
     """
+
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
         try:
             db.session.delete(balance_entry)
             db.session.commit()
+
+            # Determine the action type
+            action = "Delete"
+
+            # Log the action with balance entry ID
+            log_balance_entry(balance_entry, user.id, action)
             return jsonify({"msg": "Balance entry removed"}), 200
         except Exception as e:
             db.session.rollback()
@@ -422,6 +483,11 @@ def modify_balance_entry(balance_entry_id):
         - JSON response with error message and status code 404 if the balance entry is not found.
         - JSON response with error message and status code 500 on server error.
     """
+
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
         data = request.get_json()
@@ -438,9 +504,16 @@ def modify_balance_entry(balance_entry_id):
 
         try:
             db.session.commit()
+            # Determine the action type
+            action = "Modify"
+
+            # Log the action with balance entry ID
+            log_balance_entry(balance_entry, user.id, action)
+
             return jsonify(balance_entry.to_dict()), 200
         except Exception as e:
             db.session.rollback()
+            print(e)
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"msg": "Balance entry not found"}), 404
@@ -461,6 +534,10 @@ def add_payment():
         - JSON response with error message and status code 400 if required data is missing or invalid.
         - JSON response with error message and status code 500 on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     data = request.get_json()
     reservation_id = data.get('reservation_id')
     payment_amount = data.get('payment_amount')
@@ -486,9 +563,65 @@ def add_payment():
 
         db.session.add(new_balance_entry)
         db.session.commit()
+
+        # Determine the action type
+        action = "Add"
+
+        # Log the action with balance entry
+        log_balance_entry(new_balance_entry, user.id, action)
+
         return jsonify(new_balance_entry.to_dict()), 201
     except ValueError:
         return jsonify({"error": "Invalid payment amount"}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+def log_balance_entry(balance_entry, user_id, action):
+    menu_item = MenuItem.query.get(balance_entry.menu_item_id)
+    reservation = Reservation.query.get(balance_entry.reservation_id)
+    room = Room.query.get(reservation.room_id)
+    guest = Guest.query.get(reservation.guest_id)
+    details = ""
+
+    if menu_item.id > 0:
+        action += " Order"
+        details = f"Entry: {balance_entry.id} | " \
+                  f"Reservation: {reservation.id} | " \
+                  f"Room: {room.room_name} | " \
+                  f"Guest: {guest.name} {guest.surname} | " \
+                  f"Item: {menu_item.name} | " \
+                  f"Quantity: {balance_entry.number_of_items} | " \
+                  f"Price: {balance_entry.amount / balance_entry.number_of_items} | " \
+                  f"Total: {balance_entry.amount}"
+
+    else:
+        payment_method = "Cash" if menu_item.id == 0 else "Card"
+
+        action += " Payment"
+        details = f"Entry: {balance_entry.id} | " \
+                  f"Reservation: {reservation.id} | " \
+                  f"Room: {room.room_name} | " \
+                  f"Guest: {guest.name} {guest.surname} | " \
+                  f"Payment Method: {payment_method} | " \
+                  f"Paid: {balance_entry.amount}"
+
+    logs.log_action(user_id, action, details)
+
+
+def log_item(menu_item, user_id, action):
+    category = MenuCategory.query.get(menu_item.category_id)
+    details = f"ID: {menu_item.id} | " \
+              f"Item: {menu_item.name} | " \
+              f"Price: {menu_item.price} | " \
+              f"Category: {category.name} | " \
+              f"Description: {menu_item.description}"
+
+    logs.log_action(user_id, action, details)
+
+
+def log_category(category, user_id, action):
+    details = f"Category: {category.name}"
+
+    logs.log_action(user_id, action, details)

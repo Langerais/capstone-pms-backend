@@ -1,14 +1,18 @@
 from flask import Blueprint, request, jsonify
-from models import db, Guest  # Ensure Guest model is imported from your models.py
+
+import logs
+from models import db, Guest, User  # Ensure Guest model is imported from your models.py
 
 guest_management_blueprint = Blueprint('guest_management', __name__)
 
 
 @guest_management_blueprint.route('/add_guest', methods=['POST'])
-def add_guest(): # TODO: TEST
+def add_guest():
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
     data = request.get_json()
     new_guest = Guest(
-        #channel_manager_id=data['channel_manager_id'],
         name=data['name'],
         surname=data['surname'],
         phone=data['phone'],
@@ -19,6 +23,7 @@ def add_guest(): # TODO: TEST
     try:
         db.session.add(new_guest)
         db.session.commit()
+        log_guest(new_guest, user.id, "Add Guest")
         return jsonify(new_guest.to_dict()), 201
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -26,11 +31,16 @@ def add_guest(): # TODO: TEST
 
 @guest_management_blueprint.route('/delete_guest/<int:guest_id>', methods=['DELETE'])
 def delete_guest(guest_id):  # TODO: TEST
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     guest = Guest.query.get(guest_id)
     if guest:
         try:
             db.session.delete(guest)
             db.session.commit()
+            log_guest(guest, user.id, "Delete Guest")
             return jsonify({"msg": "Guest deleted successfully"}), 200
         except Exception as e:
             db.session.rollback()
@@ -41,6 +51,9 @@ def delete_guest(guest_id):  # TODO: TEST
 
 @guest_management_blueprint.route('/modify_guest/<int:guest_id>', methods=['PUT'])
 def modify_guest(guest_id):  # TODO: TEST
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
     guest = Guest.query.get(guest_id)
     if not guest:
         return jsonify({"msg": "Guest not found"}), 404
@@ -54,6 +67,7 @@ def modify_guest(guest_id):  # TODO: TEST
 
     try:
         db.session.commit()
+        log_guest(guest, user.id, "Modify Guest")
         return jsonify({"msg": "Guest updated successfully"}), 200
     except Exception as e:
         db.session.rollback()
@@ -97,5 +111,15 @@ def find_guest():
             return jsonify({"message": "Guest not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def log_guest(guest, user_id, action):
+    details = f"ID: {guest.id} |" \
+              f"Name: {guest.name} | " \
+              f"Surname: {guest.surname} | " \
+              f"Phone: {guest.phone} | " \
+              f"Email: {guest.email}"
+
+    logs.log_action(user_id, action, details)
 
 
