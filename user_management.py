@@ -3,9 +3,10 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import SQLAlchemyError
 import auth
+import logs
 from models import db, User, Department  # Import the necessary models
 
-user_management_blueprint = Blueprint('user_management', __name__)
+user_management_blueprint = Blueprint('users', __name__)
 
 
 @user_management_blueprint.route('/create_user', methods=['POST'])
@@ -46,6 +47,7 @@ def create_user_logic(data):
     try:
         db.session.add(new_user)
         db.session.commit()
+        log_user(new_user, new_user.id, "Create User")
         return jsonify({"msg": "User created successfully"}), 201
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -83,6 +85,7 @@ def modify_user(user_id):  # TODO: TEST
 
     try:
         db.session.commit()
+        log_user(user, user_id, "Modify User")
         return jsonify({"msg": "User updated successfully"}), 200
     except Exception as e:
         db.session.rollback()
@@ -111,6 +114,7 @@ def change_department(user_id):  # TESTED: OK
 
     try:
         db.session.commit()
+        log_user(user, user_id, "Change UserDepartment")
         return jsonify({"msg": "Department updated successfully"}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -120,3 +124,56 @@ def change_department(user_id):  # TESTED: OK
 # curl -X PUT http://localhost:5000/users/change_department/1 \
 # -H "Content-Type: application/json" \
 # -d '{"department": "Manager"}'
+
+
+# Function to get user by id using separate function get_user_logic
+@user_management_blueprint.route('/get_user/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    user = get_user_logic(user_id)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+    return jsonify(user.to_dict()), 200
+
+
+def get_user_logic(user_id):
+    user = User.query.get(user_id)
+    return user
+
+
+# Function to get all users using separate function get_users_logic
+@user_management_blueprint.route('/get_users', methods=['GET'])
+def get_users():
+    users = get_users_logic()
+    return jsonify([user.to_dict() for user in users]), 200
+
+
+def get_users_logic():
+    users = User.query.all()
+    return users
+
+
+# Function to get all users by department using separate function get_users_by_department_logic
+@user_management_blueprint.route('/get_all_users_by_department/<string:department>', methods=['GET'])
+def get_users_by_department(department):
+    users = get_users_by_department_logic(department)
+    return jsonify([user.to_dict() for user in users]), 200
+
+
+def get_users_by_department_logic(department):
+    users = User.query.filter_by(department=department).all()
+    return users
+
+
+
+# Function to log actions performed with user entities using logs.py similar to:
+
+
+def log_user(user, user_id, action):
+    details = f"ID: {user.id} |" \
+              f"Name: {user.name} | " \
+              f"Surname: {user.surname} | " \
+              f"Phone: {user.phone} | " \
+              f"Email: {user.email} | " \
+              f"Department: {user.department}"
+
+    logs.log_action(user_id, action, details)

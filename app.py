@@ -51,6 +51,7 @@ app.register_blueprint(cleaning_management_blueprint, url_prefix='/cleaning_mana
 app.register_blueprint(logging_blueprint, url_prefix='/logging')
 
 
+
 @app.route('/test/admin', methods=['GET'])
 @jwt_required()
 def test_admin_access():    # TODO: Depricated, remove this; Replace with required_roles decorator

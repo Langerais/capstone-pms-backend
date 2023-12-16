@@ -81,6 +81,7 @@ class Reservation(db.Model):
         }
 
 
+
 class User(db.Model):
     __tablename__ = 'users'
 
