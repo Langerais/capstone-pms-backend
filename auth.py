@@ -38,6 +38,25 @@ def login():  # TESTED : OK; TODO: Logout!!!
     return jsonify({"msg": "Bad email or password"}), 401
 
 
+@auth_blueprint.route('/check_password', methods=['POST'])
+def check_password():
+    email = request.json.get('email', '')
+    password = request.json.get('password', None)
+
+    if not email or not password:
+        return jsonify({"msg": "Missing email or password"}), 400
+
+    if not is_valid_email(email):
+        return jsonify({"msg": "Invalid email format"}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if user and bcrypt.check_password_hash(user.password_hash, password):
+        return jsonify({"msg": "Password is correct"}), 200
+
+    return jsonify({"msg": "Bad email or password"}), 401
+
+
 @auth_blueprint.route('/get_user_department', methods=['GET'])
 @jwt_required()
 def get_user_department():  # TESTED: OK
@@ -51,7 +70,7 @@ def get_user_department():  # TESTED: OK
 
 
 # Decorator to check if user has the required role
-def requires_roles(*roles):     # @requires_roles('Admin', 'Manager', 'OtherRole')
+def requires_roles(*roles):  # @requires_roles('Admin', 'Manager', 'OtherRole')
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
@@ -60,18 +79,19 @@ def requires_roles(*roles):     # @requires_roles('Admin', 'Manager', 'OtherRole
             if 'department' in claims and claims['department'] in roles:
                 return fn(*args, **kwargs)
             return jsonify({"msg": "Access Denied: Insufficient permissions"}), 403
+
         return wrapper
+
     return decorator
 
 
 # Validators:
-def is_valid_email(email): #TESTED OK
+def is_valid_email(email):  # TESTED OK
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     return re.match(pattern, email) is not None
 
 
 def is_valid_phone(phone):  # TESTED OK
-    # Modify this regex according to your needs for phone number validation
     regex = r'^\+?1?\d{9,15}$'
     return re.fullmatch(regex, phone)
 

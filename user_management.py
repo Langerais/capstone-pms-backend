@@ -91,10 +91,40 @@ def modify_user(user_id):  # TODO: TEST
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+
 # TEST modify_user:
 # curl -X PUT http://localhost:5000/users/modify_user/1 \
 # -H "Content-Type: application/json" \
 # -d '{"name": "NewJohn", "surname": "NewDoe", "phone": "123456789", "email": "john.doe@gmail.com", "department": "Manager"}'
+
+
+@user_management_blueprint.route('/change_password/<int:user_id>', methods=['PUT'])
+def change_password(user_id):  # TODO: TEST
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        print("Missing required fields")
+        return jsonify({"msg": "Missing required fields"}), 400
+
+    if not user.check_password(old_password):
+        print("Invalid password")
+        return jsonify({"msg": "Invalid password"}), 400
+
+    user.set_password(new_password)
+
+    try:
+        db.session.commit()
+        log_user(user, user_id, "Change UserPassword")
+        return jsonify({"msg": "Password updated successfully"}), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 @user_management_blueprint.route('/change_department/<int:user_id>', methods=['PUT'])
@@ -119,6 +149,7 @@ def change_department(user_id):  # TESTED: OK
     except SQLAlchemyError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
 
 # TEST change_department:
 # curl -X PUT http://localhost:5000/users/change_department/1 \
@@ -162,7 +193,6 @@ def get_users_by_department(department):
 def get_users_by_department_logic(department):
     users = User.query.filter_by(department=department).all()
     return users
-
 
 
 # Function to log actions performed with user entities using logs.py similar to:
