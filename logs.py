@@ -1,3 +1,4 @@
+import pytz
 from flask import Blueprint, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -13,12 +14,13 @@ class UserActionLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     action = db.Column(db.String(255), nullable=False)
     details = db.Column(db.Text, nullable=True, default=None)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now())
 
     def __init__(self, user_id, action, details=None):
         self.user_id = user_id
         self.action = action
         self.details = details
+        self.timestamp = datetime.now(pytz.timezone('Europe/Athens'))
 
     def to_dict(self):
         """Convert the UserActionLog object to a dictionary."""

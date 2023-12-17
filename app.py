@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
+from sqlalchemy.orm import sessionmaker
+
 from getSecret import get_secret
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
 
 from logs import logging_blueprint
 from models import db
@@ -18,7 +20,6 @@ from cleaning_management import cleaning_management_blueprint
 
 app = Flask(__name__)
 
-app.config['JWT_SECRET_KEY'] = '1234567890'  # TODO: Change to value from secret manager
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
 
@@ -34,12 +35,18 @@ db_host = secret['host']
 db_port = secret['port']
 app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
 
-# db = SQLAlchemy(app) # TODO: Remove this line?
+# Create a database engine
+db_engine = create_engine(f'postgresql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}')
+
+# Create a session factory with timezone set to 'Europe/Athens'
+Session = sessionmaker(bind=db_engine, expire_on_commit=False, timezone='Europe/Athens')
 
 db.init_app(app)  # Initialize db with the app context
 
+
+
 # Register the blueprints
-app.register_blueprint(get_entities_blueprint, url_prefix='/api') # TODO: Remove this
+app.register_blueprint(get_entities_blueprint, url_prefix='/api')  # TODO: Remove this
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 app.register_blueprint(registration_blueprint, url_prefix='/auth')
 app.register_blueprint(guest_management_blueprint, url_prefix='/guests')
@@ -51,19 +58,6 @@ app.register_blueprint(cleaning_management_blueprint, url_prefix='/cleaning_mana
 app.register_blueprint(logging_blueprint, url_prefix='/logging')
 
 
-
-@app.route('/test/admin', methods=['GET'])
-@jwt_required()
-def test_admin_access():    # TODO: Depricated, remove this; Replace with required_roles decorator
-    claims = get_jwt()
-    department = claims.get('department')
-
-    if department == 'Admin':
-        return jsonify({"msg": "Access granted, you are an Admin"}), 200
-
-    return jsonify({"msg": "Access denied, you are not an Admin"}), 403
-
-
 @app.route('/')
 def test_db():  # TODO: Remove this
     try:
@@ -73,6 +67,15 @@ def test_db():  # TODO: Remove this
             return 'Database connection successful.\n'
     except Exception as e:
         return f'An error occurred: {e}'
+
+
+@app.route('/get_timezone')
+def get_timezone():
+    return jsonify({'timezone': 'Europe/Athens'})
+
+
+if __name__ == '__main__':
+    app.run()
 
 
 if __name__ == '__main__':
