@@ -1,12 +1,10 @@
 import datetime as datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import CheckConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 db = SQLAlchemy()
-
-
-# TODO: Add models: Notification (?);
 
 
 class Room(db.Model):
@@ -81,6 +79,25 @@ class Reservation(db.Model):
             'status': self.status if self.status else None,
             'user_id': str(self.user_id)
         }
+
+
+class ReservationStatusChange(db.Model):
+    __tablename__ = 'reservation_status_changes'
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'))
+    status = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'reservation_id': self.reservation_id,
+            'status': self.status,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'user_id': self.user_id
+        }
+
 
 
 class User(db.Model):

@@ -1,22 +1,18 @@
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
-from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Blueprint, jsonify, request, current_app, app
 
 import logs
 from models import Room, Reservation, Guest, Balance, AppNotification, db, User
 
+
 notifications_management_blueprint = Blueprint('notifications_management', __name__)
 
 
-# Example of a scheduled task to generate and send notifications
-def generate_daily_notifications():
-    # Logic to generate notifications
-    pass
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(generate_daily_notifications, 'cron', hour=5)  # Run daily at 9 AM
-    scheduler.start()
+
+
+
 
 
 @notifications_management_blueprint.route('/get_notifications', methods=['GET'])
@@ -62,19 +58,29 @@ def create_notification():
 
     try:
         data = request.json
+
+        expiry_date_str = data['expiry_date']
+
+        # Remove milliseconds if present
+        if '.' in expiry_date_str:
+            expiry_date_str = expiry_date_str.split('.')[0]
+
         new_notification = AppNotification(
             title=data['title'],
             message=data['message'],
             department=data['department'],
             priority=data['priority'],
-            expiry_date=datetime.strptime(data['expiry_date'], '%Y-%m-%dT%H:%M:%S')
+            expiry_date=datetime.strptime(expiry_date_str, '%Y-%m-%dT%H:%M:%S')
         )
         db.session.add(new_notification)
         db.session.commit()
         log_notification(new_notification, manager, "Create Notification")
         return jsonify({"success": True}), 201
     except Exception as e:
+        print(e)
         return jsonify({'error': str(e)}), 500
+
+
 
 
 def log_notification(notification, user_id, action):

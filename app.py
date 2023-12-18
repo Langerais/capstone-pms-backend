@@ -1,16 +1,18 @@
-from flask import Flask, jsonify, request
-from sqlalchemy.orm import sessionmaker
+# Description: The main file of the application. Contains the Flask app and the database engine.
+from datetime import datetime
 
+from flask import Flask, jsonify, request, current_app
+from flask_apscheduler import APScheduler
+from sqlalchemy.orm import sessionmaker
 from getSecret import get_secret
 from sqlalchemy import text, create_engine
 
 from logs import logging_blueprint
-from models import db
+from models import db, AppNotification
 from auth import auth_blueprint
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt
 from flask_bcrypt import Bcrypt
 from getEntities import get_entities_blueprint
-from notifications_management import notifications_management_blueprint
 from registration import registration_blueprint
 from guest_management import guest_management_blueprint
 from reservations_management import reservations_management_blueprint
@@ -19,7 +21,16 @@ from user_management import user_management_blueprint
 from menu_management import menu_management_blueprint
 from cleaning_management import cleaning_management_blueprint
 
+# TODO: User role checks all over the place
+
 app = Flask(__name__)
+
+# Initialize APScheduler
+scheduler = APScheduler()
+scheduler.init_app(app)
+
+# Import the notifications_management module
+from notifications_management import notifications_management_blueprint
 
 jwt = JWTManager(app)
 bcrypt = Bcrypt(app)
@@ -80,3 +91,32 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     # print(test_db())
     app.run(host='0.0.0.0', debug=True, port=5000)  # TODO: Fix ssl_context (HTTPS doesn't work)
+
+
+def delete_expired_notifications():
+    print("Deleting expired notifications")
+
+    # Use the Flask application context
+    with app.app_context():
+        print("Getting expired notifications")
+        expired_notifications = AppNotification.query.filter(AppNotification.expiry_date < datetime.now()).all()
+        print(f"Found {len(expired_notifications)} expired notifications")
+
+        for notification in expired_notifications:
+            db.session.delete(notification)
+        db.session.commit()
+
+    print("Expired notifications deletion completed")
+
+
+# Schedule the jobs
+
+# Delete expired notifications every hour
+scheduler.add_job(
+    id='delete_expired',
+    func=delete_expired_notifications,
+    trigger='cron',
+    minute='0',
+)
+
+scheduler.start()

@@ -5,7 +5,8 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity
 
 from logs import UserActionLog
-from models import db, Reservation, Balance, User, Guest  # Import the Reservation model from models.py
+from models import db, Reservation, Balance, User, Guest, \
+    ReservationStatusChange  # Import the Reservation model from models.py
 
 reservations_management_blueprint = Blueprint('reservations_management', __name__)
 
@@ -43,6 +44,7 @@ def add_reservation():
         db.session.add(new_reservation)
         db.session.commit()
         log_reservation(new_reservation, user.id, "Reservation Add")
+        add_reservation_status_change_internal(new_reservation.id, 'Pending', user.id)
         return jsonify(new_reservation.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -69,6 +71,7 @@ def delete_reservation(reservation_id):  # TODO: TEST
             log_reservation(reservation, user.id, "Reservation Delete")
             return jsonify({"msg": "Reservation deleted successfully"}), 200
         except Exception as e:
+            print(e)
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
     else:
@@ -137,6 +140,8 @@ def change_reservation_status(reservation_id):
     data = request.get_json()
     new_status = data.get('status')
 
+    print(new_status)
+
     # You may want to validate the new status here if necessary
     if new_status not in ['Pending', 'Checked-in', 'Checked-out']:
         return jsonify({"error": "Invalid status"}), 400
@@ -146,10 +151,53 @@ def change_reservation_status(reservation_id):
     try:
         db.session.commit()
         log_reservation(reservation, user.id, "Reservation Status-Change")
+        add_reservation_status_change_internal(reservation_id, new_status, user.id)
         return jsonify({"msg": "Reservation status updated successfully"}), 200
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({"error": str(e)}), 500
+
+
+def add_reservation_status_change_internal(reservation_id, new_status, user_id):
+    """
+    Function to add a reservation status change internally.
+
+    :param reservation_id: ID of the reservation.
+    :param new_status: New status of the reservation.
+    :return: None or raises an exception if an error occurs.
+    """
+    if new_status not in ['Checked-in', 'Checked-out', 'Pending']:
+        raise ValueError("Invalid status provided")
+
+    reservation_status_change = ReservationStatusChange(
+        reservation_id=reservation_id,
+        status=new_status,
+        user_id=user_id
+    )
+
+    try:
+        db.session.add(reservation_status_change)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+
+@reservations_management_blueprint.route('/get_reservation_status_changes', methods=['GET'])
+def get_all_reservation_status_changes():
+    changes = ReservationStatusChange.query.all()
+    return jsonify([change.to_dict() for change in changes]), 200
+
+
+@reservations_management_blueprint.route('/get_reservation_status_changes/<int:reservation_id>', methods=['GET'])
+def get_reservation_status_change_by_reservation(reservation_id):
+    change = ReservationStatusChange.query.filter_by(reservation_id=reservation_id).all()
+    if change:
+        return jsonify([c.to_dict() for c in change]), 200
+    else:
+        return jsonify({"error": "Status change not found"}), 404
+
 
 
 @reservations_management_blueprint.route('/get_reservation/<int:reservation_id>', methods=['GET'])
