@@ -132,8 +132,14 @@ def search_logs():
     if action and action != 'All Actions':
         query = query.filter(UserActionLog.action == action)
 
-    if user_id and user_id != 0:
+    if user_id and user_id > 0:
         query = query.filter(UserActionLog.user_id == user_id)
+
+    if user_id == 0:
+        query = query.filter(UserActionLog.user_id == user_id)
+
+
+
 
     if details:
         query = query.filter(UserActionLog.details.like(f'%{details}%'))
@@ -143,5 +149,10 @@ def search_logs():
 
     # Convert logs to a JSON serializable format
     logs_list = [log.to_dict() for log in logs]  # Ensure you have a to_dict method in your UserActionLog model
+
+    #logs_for_system = query.filter(UserActionLog.user_id == 0).all()
+    #print(logs_for_system)
+   # for log in logs:
+    #    print(log.to_dict())
 
     return jsonify(logs_list), 200

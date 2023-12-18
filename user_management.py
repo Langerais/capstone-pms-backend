@@ -11,12 +11,34 @@ user_management_blueprint = Blueprint('users', __name__)
 
 @user_management_blueprint.route('/create_user', methods=['POST'])
 def create_user():  # TODO: TEST
+    """
+    Create a new user.
+    Returns:
+        JSON response with a success message or error message and status code.
+
+    TODO:
+        Implement validation for email and phone.
+    """
     data = request.get_json()
     message, status_code = create_user_logic(data)
     return jsonify(message), status_code
 
 
 def create_user_logic(data):
+    """
+    Logic for creating a new user.
+
+    Args:
+        data (dict): User data including name, surname, phone, email, department, and password.
+
+    Returns:
+        Tuple containing a JSON response message and status code.
+
+    """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user_who_created = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     name = data.get('name')
     surname = data.get('surname')
     phone = data.get('phone')  # Validate phone number
@@ -47,7 +69,7 @@ def create_user_logic(data):
     try:
         db.session.add(new_user)
         db.session.commit()
-        log_user(new_user, new_user.id, "Create User")
+        log_user(new_user, user_who_created.id, "Create User")
         return jsonify({"msg": "User created successfully"}), 201
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -55,7 +77,25 @@ def create_user_logic(data):
 
 
 @user_management_blueprint.route('/modify_user/<int:user_id>', methods=['PUT'])
-def modify_user(user_id):  # TODO: TEST
+def modify_user(user_id):  # Tested
+    """
+    Modify an existing user's details.
+
+    Args:
+        user_id (int): The ID of the user to be modified.
+
+    Returns:
+        JSON response with a success message or error message and status code.
+
+    Explanation:
+        - Retrieves JSON data from the request, including fields like 'name', 'surname', 'phone',
+          'email', and 'department'. If these fields are not provided in the JSON data, the
+          existing user data will be used for those fields.
+    """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user_who_changed = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -63,8 +103,8 @@ def modify_user(user_id):  # TODO: TEST
     data = request.get_json()
     name = data.get('name', user.name)
     surname = data.get('surname', user.surname)
-    phone = data.get('phone', user.phone)  # TODO: Validate phone number
-    email = data.get('email', user.email)  # TODO: Validate email
+    phone = data.get('phone', user.phone)
+    email = data.get('email', user.email)
     department = data.get('department', user.department)
 
     if email and not auth.is_valid_email(email):
@@ -85,7 +125,7 @@ def modify_user(user_id):  # TODO: TEST
 
     try:
         db.session.commit()
-        log_user(user, user_id, "Modify User")
+        log_user(user, user_who_changed.id, "Modify User")
         return jsonify({"msg": "User updated successfully"}), 200
     except Exception as e:
         db.session.rollback()
@@ -99,7 +139,24 @@ def modify_user(user_id):  # TODO: TEST
 
 
 @user_management_blueprint.route('/change_password/<int:user_id>', methods=['PUT'])
-def change_password(user_id):  # TODO: TEST
+def change_password(user_id):  # Tested
+    """
+    Change a user's password (By user itself).
+
+    Args:
+        user_id (int): The ID of the user whose password will be changed.
+
+    Returns:
+        JSON response with a success message or error message and status code.
+
+    TODO:
+        Implement validation for old and new passwords.
+
+    Explanation:
+        - Retrieves JSON data from the request, including 'old_password' and 'new_password'.
+          Both fields are required. It checks if the 'old_password' matches the user's
+          current password and then updates the password with 'new_password'.
+    """
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -127,8 +184,87 @@ def change_password(user_id):  # TODO: TEST
         return jsonify({"error": str(e)}), 500
 
 
+@user_management_blueprint.route('/change_password_manager/<int:user_id>', methods=['PUT'])
+def change_password_manager(user_id):  # Tested
+    """
+    Change a user's password (by manager or admin).
+
+    Args:
+        user_id (int): The ID of the user whose password will be changed.
+
+    Returns:
+        JSON response with a success message or error message and status code.
+
+    TODO:
+        Implement validation for manager password and new password.
+
+    Explanation:
+        - Retrieves JSON data from the request, including 'manager_password' and 'new_password'.
+          Both fields are required. It checks if the 'manager_password' matches the manager's
+          current password and then updates the user's password with 'new_password'.
+    """
+
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    manager = User.query.get(6)  # TODO: Remove this line (debugging only)
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    if not manager:
+        return jsonify({"msg": "Manager not found"}), 404
+
+    data = request.get_json()
+    manager_password = data.get('manager_password')
+    new_password = data.get('new_password')
+
+    is_password_correct = manager.check_password(manager_password)
+    print(f"Is Manager Password Correct: {is_password_correct}")
+
+    if not is_password_correct:
+        return jsonify({"msg": "Invalid manager password"}), 400
+
+    if not manager_password or not new_password:
+        print("Missing required fields")
+        return jsonify({"msg": "Missing required fields"}), 400
+
+    if not manager.check_password(manager_password):
+        print("Invalid password")
+        return jsonify({"msg": "Invalid manager password"}), 400
+
+    user.set_password(new_password)
+
+    try:
+        db.session.commit()
+        log_user(user, user_id, "Change UserPassword by Manager")
+        return jsonify({"msg": "Password updated successfully"}), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @user_management_blueprint.route('/change_department/<int:user_id>', methods=['PUT'])
 def change_department(user_id):  # TESTED: OK
+    """
+    Change a user's department.
+
+    Args:
+        user_id (int): The ID of the user whose department will be changed.
+
+    Returns:
+        JSON response with a success message or error message and status code.
+
+    Explanation:
+        - Retrieves JSON data from the request, including 'department'.
+          It checks if the 'department' exists in the database and then updates
+          the user's department.
+    """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    manager = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -144,7 +280,7 @@ def change_department(user_id):  # TESTED: OK
 
     try:
         db.session.commit()
-        log_user(user, user_id, "Change UserDepartment")
+        log_user(user, manager.id, "Change UserDepartment")
         return jsonify({"msg": "Department updated successfully"}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -160,6 +296,15 @@ def change_department(user_id):  # TESTED: OK
 # Function to get user by id using separate function get_user_logic
 @user_management_blueprint.route('/get_user/<int:user_id>', methods=['GET'])
 def get_user(user_id):
+    """
+    Get a user's details by ID.
+
+    Args:
+        user_id (int): The ID of the user to retrieve.
+
+    Returns:
+        JSON response with user details or error message and status code.
+    """
     user = get_user_logic(user_id)
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -174,6 +319,12 @@ def get_user_logic(user_id):
 # Function to get all users using separate function get_users_logic
 @user_management_blueprint.route('/get_users', methods=['GET'])
 def get_users():
+    """
+    Get a list of all departments.
+
+    Returns:
+        JSON response with a list of departments and status code.
+    """
     users = get_users_logic()
     return jsonify([user.to_dict() for user in users]), 200
 
@@ -186,6 +337,15 @@ def get_users_logic():
 # Function to get all users by department using separate function get_users_by_department_logic
 @user_management_blueprint.route('/get_all_users_by_department/<string:department>', methods=['GET'])
 def get_users_by_department(department):
+    """
+    Get a list of all users in a specific department.
+
+    Args:
+        department (str): The department name to filter by.
+
+    Returns:
+        JSON response with a list of user details or error message and status code.
+    """
     users = get_users_by_department_logic(department)
     return jsonify([user.to_dict() for user in users]), 200
 
@@ -195,10 +355,40 @@ def get_users_by_department_logic(department):
     return users
 
 
+@user_management_blueprint.route('/get_all_departments', methods=['GET'])
+def get_all_departments():
+    """
+    Get a list of all available departments.
+
+    Returns:
+        JSON response with a list of department details or error message and status code.
+    """
+    departments = Department.query.all()
+    return jsonify([department.to_dict() for department in departments]), 200
+
+
 # Function to log actions performed with user entities using logs.py similar to:
 
 
 def log_user(user, user_id, action):
+    """
+    Log user-related actions and details.
+
+    Args:
+        user (User): The user entity for which the action is being logged.
+        user_id (int): The ID of the user involved in the action.
+        action (str): The action being performed, such as "Create User" or "Modify User".
+
+    Logs the details of the action along with user information.
+
+    Example of logged details:
+    "ID: 4 | Name: John | Surname: Doe | Phone: 123456789 | Email: john@example.com | Department: IT"
+
+    The logged information can be used for auditing and tracking user-related activities.
+
+    Returns:
+        None
+    """
     details = f"ID: {user.id} |" \
               f"Name: {user.name} | " \
               f"Surname: {user.surname} | " \

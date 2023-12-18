@@ -93,10 +93,10 @@ class User(db.Model):
     department = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(128))
 
-    def set_password(self, password):  # TESTED: OK
+    def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):  # TESTED: OK
+    def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):

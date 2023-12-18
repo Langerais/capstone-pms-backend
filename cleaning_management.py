@@ -5,8 +5,11 @@ It includes routes for retrieving cleaning schedules, managing cleaning tasks, a
 
 from flask import jsonify, request, Blueprint
 from datetime import datetime, timedelta
+
+import logs
 import room_management
-from models import db, CleaningSchedule, CleaningAction, Room, Reservation  # Assuming these are your SQLAlchemy models
+from models import db, CleaningSchedule, CleaningAction, Room, Reservation, \
+    User  # Assuming these are your SQLAlchemy models
 
 cleaning_management_blueprint = Blueprint('cleaning_management', __name__)
 
@@ -304,6 +307,8 @@ def schedule_cleaning():
             if error:
                 raise Exception(error['error'])
 
+        log_cleaning_for_day_scheduled(start_date)
+
         # Return a success message
         return jsonify({"message": "Cleaning scheduled successfully for all rooms"}), 200
 
@@ -497,10 +502,10 @@ def get_last_checkout_date_before(room_id, given_date):
         days=7)
 
 
-@cleaning_management_blueprint.route('/toggle_task_status/<int:id>', methods=['POST'])
-def change_task_status(id):
+@cleaning_management_blueprint.route('/toggle_task_status/<int:schedule_id>', methods=['POST'])
+def change_task_status(schedule_id):
     """
-    Flask route to update the status of a specific cleaning task.
+    Flask route to update the status of a specific cleaning task. (Pending/Completed)
 
     This route handles a POST request to change the status of a cleaning task in the CleaningSchedule database.
     It also updates the performed_timestamp of the task based on the new status.
@@ -511,6 +516,9 @@ def change_task_status(id):
     Returns:
     Flask Response: A JSON response indicating the success or failure of the operation.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
 
     # Extract data from the request's JSON payload
     data = request.get_json()
@@ -518,12 +526,12 @@ def change_task_status(id):
     completed_date_str = data.get('completed_date')  # The date when the task was completed
 
     # Validate the presence of required data
-    if not id or not completed_date_str:
-        return jsonify({"error": "Task ID and completed date are required"}), 400
+    if not completed_date_str:
+        return jsonify({"error": "Completed date is required"}), 400
 
     try:
         # Fetch the task from the database using the provided ID
-        task = CleaningSchedule.query.get(id)
+        task = CleaningSchedule.query.get(schedule_id)
         if not task:
             # Task not found in the database
             return jsonify({"error": "Cleaning task not found"}), 404
@@ -537,7 +545,7 @@ def change_task_status(id):
 
         # Commit the changes to the database
         db.session.commit()
-
+        log_cleaning_action_performed(user.id, schedule_id, task_status)
         # Return a success message
         return jsonify({"message": "Task marked as completed and future tasks rescheduled"}), 200
 
@@ -678,6 +686,10 @@ def create_cleaning_action():
         JSON response with an error message and a 400 status code if data is missing.
         JSON response with an error message and a 500 status code on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     data = request.get_json()
     action_name = data.get('action_name')
     frequency_days = data.get('frequency_days')
@@ -690,6 +702,7 @@ def create_cleaning_action():
     try:
         db.session.add(new_action)
         db.session.commit()
+        log_cleaning_action_modified(user.id, new_action.id, "Create new cleaning action")
         return jsonify(new_action.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -711,12 +724,17 @@ def remove_cleaning_action(action_id):
         JSON response with an error message and a 404 status code if the action is not found.
         JSON response with an error message and a 500 status code on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     action = CleaningAction.query.get(action_id)
     if action:
         try:
             CleaningSchedule.query.filter_by(action_id=action_id).delete()
             db.session.delete(action)
             db.session.commit()
+            log_cleaning_action_modified(user.id, action.id, "Delete cleaning action")
             return jsonify({"msg": "Action removed"}), 200
         except Exception as e:
             db.session.rollback()
@@ -741,6 +759,10 @@ def modify_cleaning_action(action_id):
         JSON response with an error message and a 404 status code if the action is not found.
         JSON response with an error message and a 500 status code on server error.
     """
+    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
+    ##user = User.query.filter_by(email=current_user_email).first()
+    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+
     action = CleaningAction.query.get(action_id)
     if action:
         data = request.get_json()
@@ -754,9 +776,73 @@ def modify_cleaning_action(action_id):
 
         try:
             db.session.commit()
+            log_cleaning_action_modified(user.id, action.id, "Modify cleaning action")
             return jsonify(action.to_dict()), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"msg": "Action not found"}), 404
+
+
+def log_cleaning_action_performed(user_id, schedule_id, action_status):
+    """
+    Log cleaning action performed.
+
+    Args:
+        user_id (int): The ID of the user involved in the action.
+        action_id (int): The ID of the cleaning action performed.
+
+    Logs the details of the action along with user information.
+
+    Example of logged details:
+    "Action: Linens | Room: 103
+    :param action_status: Pending/Completed
+    :param user_id: The ID of the user involved in the action.
+    :param schedule_id: The ID of the cleaning action performed.
+    """
+    schedule = CleaningSchedule.query.get(schedule_id)
+    action = CleaningAction.query.get(schedule.action_id)
+    log_action = "Cleaning Action Status: " + action_status
+    room = Room.query.get(schedule.room_id)
+    details = f"Action: {action.action_name} | Room: {room.room_name}"
+    logs.log_action(user_id, log_action, details)
+
+
+def log_cleaning_for_day_scheduled(date):
+    """
+    Log cleaning action scheduled for a day.
+
+    Args:
+        date (date): The date of the scheduled cleaning action.
+
+    Logs the details of the action along with the date it's scheduled for.
+
+    Example of logged details:
+    "Date: 2020-11-01
+    :param date: The date of the cleanings scheduled.
+    """
+    log_action = "Auto Scheduled Cleaning for Day"
+    details = f"Date: {date}"
+    logs.log_action(0, log_action, details)
+
+
+def log_cleaning_action_modified(user_id, action_id, action):
+    """
+    Log cleaning action modified.
+
+    Args:
+        user_id (int): The ID of the user involved in the action.
+        action_id (int): The ID of the cleaning action performed.
+
+    Logs the details of the action along with user information.
+
+    Example of logged details:
+    "Action: Linens | Room: 103
+    :param action: Type of modification
+    :param user_id: The ID of the user involved in the action.
+    :param action_id: The ID of the cleaning action performed.
+    """
+    cleaning_action = CleaningAction.query.get(action_id)
+    details = f"Action: {action_id} : {cleaning_action.action_name} | Frequency: {cleaning_action.frequency_days}"
+    logs.log_action(user_id, action, details)

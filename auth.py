@@ -4,12 +4,11 @@ from datetime import timedelta
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from models import db, User
-from flask_bcrypt import Bcrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import re
 
 auth_blueprint = Blueprint('auth', __name__)
-bcrypt = Bcrypt()
 
 
 @auth_blueprint.route('/login', methods=['POST'])
@@ -28,7 +27,7 @@ def login():  # TESTED : OK; TODO: Logout!!!
 
     user = User.query.filter_by(email=email).first()
 
-    if user and bcrypt.check_password_hash(user.password_hash, password):
+    if user and user.check_password(password):
         additional_claims = {"department": user.department}
         access_token = create_access_token(identity=user.email,
                                            additional_claims=additional_claims,
@@ -44,15 +43,20 @@ def check_password():
     password = request.json.get('password', None)
 
     if not email or not password:
+        print("Missing email or password")
         return jsonify({"msg": "Missing email or password"}), 400
 
     if not is_valid_email(email):
+        print("Invalid email format")
         return jsonify({"msg": "Invalid email format"}), 400
 
     user = User.query.filter_by(email=email).first()
+    print(f"User: {user.name}")
 
-    if user and bcrypt.check_password_hash(user.password_hash, password):
+    if user and user.check_password(password):
         return jsonify({"msg": "Password is correct"}), 200
+
+    print(user.check_password(password))
 
     return jsonify({"msg": "Bad email or password"}), 401
 
