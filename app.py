@@ -10,6 +10,7 @@ from auth import auth_blueprint
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt
 from flask_bcrypt import Bcrypt
 from getEntities import get_entities_blueprint
+from notifications_management import notifications_management_blueprint
 from registration import registration_blueprint
 from guest_management import guest_management_blueprint
 from reservations_management import reservations_management_blueprint
@@ -43,8 +44,6 @@ Session = sessionmaker(bind=db_engine, expire_on_commit=False, timezone='Europe/
 
 db.init_app(app)  # Initialize db with the app context
 
-
-
 # Register the blueprints
 app.register_blueprint(get_entities_blueprint, url_prefix='/api')  # TODO: Remove this
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
@@ -56,6 +55,7 @@ app.register_blueprint(user_management_blueprint, url_prefix='/users')
 app.register_blueprint(menu_management_blueprint, url_prefix='/menu')
 app.register_blueprint(cleaning_management_blueprint, url_prefix='/cleaning_management')
 app.register_blueprint(logging_blueprint, url_prefix='/logging')
+app.register_blueprint(notifications_management_blueprint, url_prefix='/notifications')
 
 
 @app.route('/')
@@ -76,7 +76,6 @@ def get_timezone():
 
 if __name__ == '__main__':
     app.run()
-
 
 if __name__ == '__main__':
     # print(test_db())

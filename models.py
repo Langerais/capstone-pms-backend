@@ -5,6 +5,7 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+
 # TODO: Add models: Notification (?);
 
 
@@ -65,7 +66,8 @@ class Reservation(db.Model):
     guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'))
     due_amount = db.Column(db.Numeric(10, 2))
     status = db.Column(db.Enum('Pending', 'Checked-in', 'Checked-out', name='reservation_status'), default='Pending')
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, default=6)  # 6-Admin (Temporary) TODO: Remove default value
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False,
+                        default=6)  # 6-Admin (Temporary) TODO: Remove default value
 
     def to_dict(self):
         return {
@@ -79,7 +81,6 @@ class Reservation(db.Model):
             'status': self.status if self.status else None,
             'user_id': str(self.user_id)
         }
-
 
 
 class User(db.Model):
@@ -162,7 +163,8 @@ class Balance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     reservation_id = db.Column(db.Integer, db.ForeignKey('reservations.id'), nullable=False)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False, default=0)  # 0 for cash payments, -1 for credit card payments
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False,
+                             default=0)  # 0 for cash payments, -1 for credit card payments
     transaction_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
     number_of_items = db.Column(db.Integer, nullable=False, default=1)
@@ -220,3 +222,22 @@ class CleaningSchedule(db.Model):
         }
 
 
+class AppNotification(db.Model):
+    __tablename__ = 'notifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    department = db.Column(db.String(255), nullable=False)
+    priority = db.Column(db.Integer, nullable=False)
+    expiry_date = db.Column(db.DateTime, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'message': self.message,
+            'department': self.department,
+            'priority': self.priority,
+            'expiry_date': self.expiry_date.isoformat()
+        }
