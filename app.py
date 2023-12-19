@@ -18,7 +18,6 @@ from room_management import room_management_blueprint
 from user_management import user_management_blueprint
 from menu_management import menu_management_blueprint
 from cleaning_management import cleaning_management_blueprint, schedule_cleaning_internal
-from config import SCHEDULER_INTERVAL_CRON_10MIN, SCHEDULER_INTERVAL_1MIN
 
 # TODO: User role checks all over the place
 
