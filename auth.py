@@ -8,10 +8,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import re
 
-auth_blueprint = Blueprint('auth', __name__)
+authentication_blueprint = Blueprint('auth', __name__)
 
 
-@auth_blueprint.route('/login', methods=['POST'])
+@authentication_blueprint.route('/login', methods=['POST'])
 def login():  # TESTED : OK; TODO: Logout!!!
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
@@ -37,7 +37,7 @@ def login():  # TESTED : OK; TODO: Logout!!!
     return jsonify({"msg": "Bad email or password"}), 401
 
 
-@auth_blueprint.route('/check_password', methods=['POST'])
+@authentication_blueprint.route('/check_password', methods=['POST'])
 def check_password():
     email = request.json.get('email', '')
     password = request.json.get('password', None)
@@ -61,7 +61,7 @@ def check_password():
     return jsonify({"msg": "Bad email or password"}), 401
 
 
-@auth_blueprint.route('/get_user_department', methods=['GET'])
+@authentication_blueprint.route('/get_user_department', methods=['GET'])
 @jwt_required()
 def get_user_department():  # TESTED: OK
     user_email = get_jwt_identity()

@@ -47,17 +47,17 @@ def create_user_logic(data):
     password = data.get('password')
 
     if not all([name, surname, phone, email, password, department]):
-        return jsonify({"msg": "Missing required fields"}), 400
+        return "Missing required fields", 400
 
     if not auth.is_valid_email(email):
-        return jsonify({"msg": "Invalid email format"}), 400
+        return "Invalid email format", 400
 
     if not auth.is_valid_phone(phone):
-        return jsonify({"msg": "Invalid phone number format"}), 400
+        return "Invalid phone number format", 400
 
     # Check if department exists
     if not Department.query.filter_by(department_name=department).first():
-        return jsonify({"msg": "Invalid department"}), 400
+        return "Invalid department", 400
 
     # Check if user already exists
     if User.query.filter_by(email=email).first():
@@ -70,10 +70,10 @@ def create_user_logic(data):
         db.session.add(new_user)
         db.session.commit()
         log_user(new_user, user_who_created.id, "Create User")
-        return jsonify({"msg": "User created successfully"}), 201
+        return "User created successfully", 201
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return f"Database error: {str(e)}", 500
 
 
 @user_management_blueprint.route('/modify_user/<int:user_id>', methods=['PUT'])

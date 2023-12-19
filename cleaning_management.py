@@ -354,7 +354,7 @@ def schedule_cleaning_internal():
                 raise Exception(error['error'])
 
         log_cleaning_for_day_scheduled(start_date)
-        print("Cleaning scheduled successfully for all rooms")
+        print("Cleaning scheduled successfully for all rooms for date: ", start_date)
 
     except ValueError:
         # Handle invalid date format error

@@ -2,12 +2,14 @@
 from flask import Flask, jsonify, request, current_app
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm import sessionmaker
+
+import registration
 from getSecret import get_secret
 from sqlalchemy import text, create_engine
 from datetime import datetime, timedelta
 from logs import logging_blueprint
 from models import db, AppNotification, Reservation, Guest, Room, CleaningSchedule
-from auth import auth_blueprint
+from auth import authentication_blueprint
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt
 from flask_bcrypt import Bcrypt
 from getEntities import get_entities_blueprint
@@ -55,8 +57,7 @@ db.init_app(app)  # Initialize db with the app context
 
 # Register the blueprints
 app.register_blueprint(get_entities_blueprint, url_prefix='/api')  # TODO: Remove this
-app.register_blueprint(auth_blueprint, url_prefix='/auth')
-app.register_blueprint(registration_blueprint, url_prefix='/auth')
+app.register_blueprint(authentication_blueprint, url_prefix='/auth')
 app.register_blueprint(guest_management_blueprint, url_prefix='/guests')
 app.register_blueprint(reservations_management_blueprint, url_prefix='/reservations')
 app.register_blueprint(room_management_blueprint, url_prefix='/rooms')
@@ -65,6 +66,7 @@ app.register_blueprint(menu_management_blueprint, url_prefix='/menu')
 app.register_blueprint(cleaning_management_blueprint, url_prefix='/cleaning_management')
 app.register_blueprint(logging_blueprint, url_prefix='/logging')
 app.register_blueprint(notifications_management_blueprint, url_prefix='/notifications')
+app.register_blueprint(registration_blueprint, url_prefix='/registration')
 
 
 @app.route('/')
@@ -91,24 +93,17 @@ if __name__ == '__main__':
 
 
 def delete_expired_notifications():  # Tested-
-    print("Deleting expired notifications")
-
     # Use the Flask application context
     with app.app_context():
-        # Print time of execution
-
-        print(datetime.now())
         expired_notifications = AppNotification.query.filter(AppNotification.expiry_date < datetime.now()).all()
 
         for notification in expired_notifications:
             db.session.delete(notification)
         db.session.commit()
 
-    print("Expired notifications deletion completed")
-
 
 def check_departures_create_notifications():  # Tested
-    print("Checking reservations")
+    print("Checking for Departures...")
     with app.app_context():
         reservations = Reservation.query.filter(
             Reservation.end_date >= datetime.now(),
@@ -148,11 +143,10 @@ def check_departures_create_notifications():  # Tested
                             manager_id=0,  # SYSTEM User
                             expiry_date=expiry_date,
                         )
-    print("Checking reservations completed")
 
 
 def check_arrivals_create_notifications():
-    print("Checking for upcoming arrivals")
+    print("Checking for Arrivals...")
     with app.app_context():
         reservations = Reservation.query.filter(
             Reservation.start_date >= datetime.now(),
@@ -199,8 +193,6 @@ def check_arrivals_create_notifications():
                         manager_id=0,
                         expiry_date=clean_expiry_date,
                     )
-
-    print("Arrival checks completed")
 
 
 # Schedule cleaning for today, every 24h

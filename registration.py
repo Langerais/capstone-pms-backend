@@ -11,9 +11,14 @@ bcrypt = Bcrypt()
 
 
 @registration_blueprint.route('/register', methods=['POST'])
-def register():  # TODO: TEST
+def register():
     data = request.json
     data['department'] = 'Pending'  # Set department to 'Pending'
 
     message, status_code = create_user_logic(data)
-    return jsonify(message), status_code
+
+    if status_code == 201:
+        return jsonify({"msg": message}), status_code
+    else:
+        print(message)
+        return jsonify({"error": message}), status_code
