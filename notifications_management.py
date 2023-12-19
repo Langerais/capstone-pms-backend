@@ -1,18 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request, current_app, app
 
 import logs
 from models import Room, Reservation, Guest, Balance, AppNotification, db, User
 
-
 notifications_management_blueprint = Blueprint('notifications_management', __name__)
-
-
-
-
-
-
 
 
 @notifications_management_blueprint.route('/get_notifications', methods=['GET'])
@@ -58,29 +51,50 @@ def create_notification():
 
     try:
         data = request.json
+        manager_id = 6  # TODO: Replace with actual logic to get manager's ID
 
-        expiry_date_str = data['expiry_date']
+        # Convert the expiry date string to a datetime object, removing milliseconds if present
+        expiry_date_str = data['expiry_date'].split('.')[0] if '.' in data['expiry_date'] else data['expiry_date']
+        expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%dT%H:%M:%S')
 
-        # Remove milliseconds if present
-        if '.' in expiry_date_str:
-            expiry_date_str = expiry_date_str.split('.')[0]
-
-        new_notification = AppNotification(
+        # Call the internal logic function to create the notification
+        create_notification_logic(
             title=data['title'],
             message=data['message'],
             department=data['department'],
             priority=data['priority'],
-            expiry_date=datetime.strptime(expiry_date_str, '%Y-%m-%dT%H:%M:%S')
+            manager_id=manager_id,
+            expiry_date=expiry_date
         )
-        db.session.add(new_notification)
-        db.session.commit()
-        log_notification(new_notification, manager, "Create Notification")
         return jsonify({"success": True}), 201
     except Exception as e:
         print(e)
         return jsonify({'error': str(e)}), 500
 
 
+def create_notification_logic(title, message, department, priority, manager_id, expiry_date):
+    try:
+        #manager = User.query.get(manager_id)
+
+        #
+
+        # Remove milliseconds if present
+        #if '.' in expiry_date:
+        #    expiry_date = expiry_date.split('.')[0]
+        expiry_date_str = expiry_date.strftime('%Y-%m-%dT%H:%M:%S')
+
+        new_notification = AppNotification(
+            title=title,
+            message=message,
+            department=department,
+            priority=priority,
+            expiry_date=datetime.strptime(expiry_date_str, '%Y-%m-%dT%H:%M:%S')
+        )
+        db.session.add(new_notification)
+        db.session.commit()
+        log_notification(new_notification, manager_id, "Create Notification")
+    except Exception as e:
+        print(e)
 
 
 def log_notification(notification, user_id, action):

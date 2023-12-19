@@ -107,6 +107,17 @@ def get_room_date_range_cleaning_schedule(room_id):
     return jsonify([entry.to_dict() for entry in schedule]), 200
 
 
+def get_room_today_cleaning_schedule(room_id):
+    # Query the database for cleaning schedules for the specified room in the date range
+    schedule = CleaningSchedule.query.filter(
+        CleaningSchedule.room_id == room_id,
+        CleaningSchedule.scheduled_date.equal(datetime.now().date())
+    ).all()
+
+    # Convert the schedule entries to dictionaries and return them as JSON
+    return jsonify([entry.to_dict() for entry in schedule]), 200
+
+
 @cleaning_management_blueprint.route('/get_room_cleaning_schedule_by_date', methods=['GET'])
 def get_room_cleaning_schedule_by_date():
     """
@@ -320,6 +331,38 @@ def schedule_cleaning():
         db.session.rollback()
         print(e)
         return jsonify({"error": str(e)}), 500
+
+
+def schedule_cleaning_internal():
+    """
+    Internal function to schedule cleaning for all rooms starting from a given date.
+
+    This function schedules cleaning tasks for every room in the database starting from a specified start date.
+
+    Returns: None
+    """
+    try:
+        # Convert the start date from string to datetime object
+        start_date = datetime.today().date()
+        # Fetch all rooms from the database
+        rooms = Room.query.all()
+
+        # Schedule cleaning for each room starting from the start date
+        for room in rooms:
+            success, error = schedule_room_cleaning_for(room.id, start_date)
+            if error:
+                raise Exception(error['error'])
+
+        log_cleaning_for_day_scheduled(start_date)
+        print("Cleaning scheduled successfully for all rooms")
+
+    except ValueError:
+        # Handle invalid date format error
+        print("Invalid date format. Please use YYYY-MM-DD")
+    except Exception as e:
+        # Handle other exceptions and perform a database rollback
+        db.session.rollback()
+        print(e)
 
 
 def schedule_room_cleaning_for(room_id, date_to_schedule):

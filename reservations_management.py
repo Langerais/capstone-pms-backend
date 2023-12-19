@@ -301,6 +301,21 @@ def calculate_unpaid_amount(reservation_id):
     return jsonify({'unpaid_amount': str(unpaid_amount)}), 200
 
 
+def calculate_unpaid_amount_internal(reservation_id):
+    """
+    Endpoint to calculate the unpaid amount for a given reservation (Restaurant only)
+    :param reservation_id: The ID of the reservation to calculate the unpaid amount for.
+    :return: JSON response with the unpaid amount and a success or error message.
+    """
+    balance_entries = Balance.query.filter_by(reservation_id=reservation_id).all()
+
+    total_charges = sum(entry.amount for entry in balance_entries if entry.menu_item_id > 0)
+    total_payments = sum(entry.amount for entry in balance_entries if entry.menu_item_id in [0, -1])
+
+    unpaid_amount = total_charges + total_payments  # Payments are negative amounts
+    return unpaid_amount
+
+
 def log_reservation(reservation, user_id, action):
 
     """
