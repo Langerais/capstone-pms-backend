@@ -8,7 +8,7 @@ allowing only authorized personnel (like Admin and Manager) to make changes to t
 """
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required  # Will be used later
+from flask_jwt_extended import jwt_required, get_jwt_identity  # Will be used later
 
 import logs
 from auth import requires_roles  # Will be used later
@@ -18,8 +18,8 @@ menu_management_blueprint = Blueprint('menu_management', __name__)
 
 
 @menu_management_blueprint.route('/create_category', methods=['POST'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def create_category():
     """
     Creates a new menu category.
@@ -32,9 +32,8 @@ def create_category():
         - JSON response with error message and status code 400 if category name is missing.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     data = request.get_json()
     name = data.get('name')
@@ -58,8 +57,8 @@ def create_category():
 # I'll provide an example for one more route for brevity
 
 @menu_management_blueprint.route('/remove_category/<int:category_id>', methods=['DELETE'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def remove_category(category_id):
     """
     Deletes a menu category.
@@ -74,9 +73,8 @@ def remove_category(category_id):
         - JSON response with error message and status code 404 if category is not found.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     category = MenuCategory.query.get(category_id)
     if category:
@@ -93,8 +91,8 @@ def remove_category(category_id):
 
 
 @menu_management_blueprint.route('/modify_category/<int:category_id>', methods=['PUT'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def modify_category(category_id):
     """
     Modifies an existing menu category.
@@ -110,9 +108,8 @@ def modify_category(category_id):
         - JSON response with error message and status code 404 if the category is not found.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     category = MenuCategory.query.get(category_id)
     if category:
@@ -133,6 +130,8 @@ def modify_category(category_id):
 
 
 @menu_management_blueprint.route('/get_categories', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_categories():
     """
     Retrieves all menu categories.
@@ -149,8 +148,8 @@ def get_categories():
 
 # Menu item management routes
 @menu_management_blueprint.route('/create_item', methods=['POST'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def create_item():
     """
     Creates a new menu item.
@@ -163,9 +162,8 @@ def create_item():
         - JSON response with error message and status code 400 if required data is missing.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     data = request.get_json()
     name = data.get('name')
@@ -191,8 +189,8 @@ def create_item():
 
 
 @menu_management_blueprint.route('/remove_item/<int:item_id>', methods=['DELETE'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def remove_item(item_id):
     """
     Deletes a menu item.
@@ -207,9 +205,8 @@ def remove_item(item_id):
         - JSON response with error message and status code 404 if item is not found.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     item = MenuItem.query.get(item_id)
     if item:
@@ -226,8 +223,8 @@ def remove_item(item_id):
 
 
 @menu_management_blueprint.route('/modify_item/<int:item_id>', methods=['PUT'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def modify_item(item_id):
     """
     Modifies an existing menu item.
@@ -245,9 +242,8 @@ def modify_item(item_id):
         - JSON response with error message and status code 500 on server error.
     """
 
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     item = MenuItem.query.get(item_id)
     if item:
@@ -278,6 +274,8 @@ def modify_item(item_id):
 
 
 @menu_management_blueprint.route('/get_items', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_items():
     """
     Retrieves all menu items.
@@ -293,6 +291,8 @@ def get_items():
 
 
 @menu_management_blueprint.route('/get_item/<int:item_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_menu_item(item_id):
     """
     Retrieves a specific menu item by its ID.
@@ -314,6 +314,8 @@ def get_menu_item(item_id):
 
 
 @menu_management_blueprint.route('/get_items_by_category/<int:category_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar')
 def get_items_by_category(category_id):
     """
     Retrieves menu items by their category ID.
@@ -336,6 +338,7 @@ def get_items_by_category(category_id):
 
 # Balance management routes...
 @menu_management_blueprint.route('/create_balance_entry', methods=['POST'])
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def create_balance_entry():
     """
     Creates a new balance entry.
@@ -349,9 +352,8 @@ def create_balance_entry():
         - JSON response with error message and status code 500 on server error.
     """
 
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     data = request.get_json()
     reservation_id = data.get('reservation_id')
@@ -362,6 +364,8 @@ def create_balance_entry():
     if reservation_id is None:
         return jsonify({"msg": "Missing required balance data"}), 400
 
+    print("reservation_id: ", reservation_id)
+
     new_balance_entry = Balance(
         reservation_id=reservation_id,
         menu_item_id=menu_item_id,
@@ -371,7 +375,7 @@ def create_balance_entry():
     try:
         db.session.add(new_balance_entry)
         db.session.commit()
-
+        print("new_balance_entry.id: ", new_balance_entry.id)
         # Determine the action type
         action = "Add"
         # Log the action with balance entry
@@ -385,8 +389,8 @@ def create_balance_entry():
 
 
 @menu_management_blueprint.route('/get_balance_entries', methods=['GET'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager', 'Bar', 'Reception')
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_balance_entries():
     """
     Retrieves all balance entries.
@@ -403,8 +407,8 @@ def get_balance_entries():
 
 
 @menu_management_blueprint.route('/get_balance_entries/<int:reservation_id>', methods=['GET'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager', 'Bar', 'Reception')
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception')
 def get_balance_entries_for_reservation(reservation_id):
     """
     Retrieves balance entries for a specific reservation.
@@ -426,8 +430,8 @@ def get_balance_entries_for_reservation(reservation_id):
 
 
 @menu_management_blueprint.route('/remove_balance_entry/<int:balance_entry_id>', methods=['DELETE'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def remove_balance_entry(balance_entry_id):
     """
     Deletes a balance entry.
@@ -443,9 +447,8 @@ def remove_balance_entry(balance_entry_id):
         - JSON response with error message and status code 500 on server error.
     """
 
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
@@ -467,8 +470,8 @@ def remove_balance_entry(balance_entry_id):
 
 
 @menu_management_blueprint.route('/modify_balance_entry/<int:balance_entry_id>', methods=['PUT'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def modify_balance_entry(balance_entry_id):
     """
     Modifies an existing balance entry.
@@ -484,9 +487,8 @@ def modify_balance_entry(balance_entry_id):
         - JSON response with error message and status code 500 on server error.
     """
 
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     balance_entry = Balance.query.get(balance_entry_id)
     if balance_entry:
@@ -520,8 +522,8 @@ def modify_balance_entry(balance_entry_id):
 
 
 @menu_management_blueprint.route('/add_payment', methods=['POST'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager', 'Reception', 'Bar')
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def add_payment():
     """
     Adds a payment as a balance entry.
@@ -534,9 +536,8 @@ def add_payment():
         - JSON response with error message and status code 400 if required data is missing or invalid.
         - JSON response with error message and status code 500 on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     data = request.get_json()
     reservation_id = data.get('reservation_id')

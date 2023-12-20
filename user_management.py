@@ -19,8 +19,6 @@ def create_user():  # TESTED
     Returns:
         JSON response with a success message or error message and status code.
 
-    TODO:
-        Implement validation for email and phone.
     """
     data = request.get_json()
     message, status_code = create_user_logic(data)
@@ -38,9 +36,8 @@ def create_user_logic(data):
         Tuple containing a JSON response message and status code.
 
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user_who_created = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user_who_created = User.query.filter_by(email=current_user_email).first()
 
     name = data.get('name')
     surname = data.get('surname')
@@ -97,9 +94,8 @@ def modify_user(user_id):  # Tested
           'email', and 'department'. If these fields are not provided in the JSON data, the
           existing user data will be used for those fields.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user_who_changed = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user_who_changed = User.query.filter_by(email=current_user_email).first()
 
     user = User.query.get(user_id)
     if not user:
@@ -133,6 +129,7 @@ def modify_user(user_id):  # Tested
         log_user(user, user_who_changed.id, "Modify User")
         return jsonify({"msg": "User updated successfully"}), 200
     except Exception as e:
+        print(e)
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
@@ -146,15 +143,13 @@ def modify_user(user_id):  # Tested
 @user_management_blueprint.route('/change_password/<int:user_id>', methods=['PUT'])
 @jwt_required()
 @auth.requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
-def change_password():  # Tested
+def change_password():
     """
     Change a user's password (By user itself).
 
     Returns:
         JSON response with a success message or error message and status code.
 
-    TODO:
-        Implement validation for old and new passwords.
 
     Explanation:
         - Retrieves JSON data from the request, including 'old_password' and 'new_password'.
@@ -190,6 +185,8 @@ def change_password():  # Tested
 
 
 @user_management_blueprint.route('/change_password_manager/<int:user_id>', methods=['PUT'])
+@jwt_required()
+@auth.requires_roles('Admin', 'Manager')
 def change_password_manager(user_id):  # Tested
     """
     Change a user's password (by manager or admin).
@@ -200,18 +197,14 @@ def change_password_manager(user_id):  # Tested
     Returns:
         JSON response with a success message or error message and status code.
 
-    TODO:
-        Implement validation for manager password and new password.
-
     Explanation:
         - Retrieves JSON data from the request, including 'manager_password' and 'new_password'.
           Both fields are required. It checks if the 'manager_password' matches the manager's
           current password and then updates the user's password with 'new_password'.
     """
 
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    manager = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    manager = User.query.filter_by(email=current_user_email).first()
 
     user = User.query.get(user_id)
 
@@ -251,6 +244,8 @@ def change_password_manager(user_id):  # Tested
 
 
 @user_management_blueprint.route('/change_department/<int:user_id>', methods=['PUT'])
+@jwt_required()
+@auth.requires_roles('Admin', 'Manager')
 def change_department(user_id):  # TESTED: OK
     """
     Change a user's department.
@@ -266,9 +261,8 @@ def change_department(user_id):  # TESTED: OK
           It checks if the 'department' exists in the database and then updates
           the user's department.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    manager = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    manager = User.query.filter_by(email=current_user_email).first()
 
     user = User.query.get(user_id)
     if not user:
@@ -300,6 +294,7 @@ def change_department(user_id):  # TESTED: OK
 
 # Function to get user by id using separate function get_user_logic
 @user_management_blueprint.route('/get_user/<int:user_id>', methods=['GET'])
+@jwt_required()
 def get_user(user_id):
     """
     Get a user's details by ID.
@@ -323,6 +318,7 @@ def get_user_logic(user_id):
 
 # Endpoint to get user by email
 @user_management_blueprint.route('/get_user_by_email/<string:email>', methods=['GET'])
+@jwt_required()
 def get_user_by_email(email):
     """
     Get a user's details by email.
@@ -365,6 +361,7 @@ def get_users_logic():
 
 # Function to get all users by department using separate function get_users_by_department_logic
 @user_management_blueprint.route('/get_all_users_by_department/<string:department>', methods=['GET'])
+@jwt_required()
 def get_users_by_department(department):
     """
     Get a list of all users in a specific department.
@@ -385,6 +382,7 @@ def get_users_by_department_logic(department):
 
 
 @user_management_blueprint.route('/get_all_departments', methods=['GET'])
+@jwt_required()
 def get_all_departments():
     """
     Get a list of all available departments.

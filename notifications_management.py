@@ -1,17 +1,21 @@
 from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request, current_app, app
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 import logs
+from auth import requires_roles
 from models import Room, Reservation, Guest, Balance, AppNotification, db, User
 
 notifications_management_blueprint = Blueprint('notifications_management', __name__)
 
 
 @notifications_management_blueprint.route('/get_notifications', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
 def get_notifications():
     try:
-        # Fetch all notifications, or add filters as per your requirement
+        # Fetch all notifications
         notifications = AppNotification.query.all()
         return jsonify([notification.to_dict() for notification in notifications]), 200
     except Exception as e:
@@ -20,6 +24,8 @@ def get_notifications():
 
 
 @notifications_management_blueprint.route('/get_notifications/<int:notification_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
 def get_notification(notification_id):
     try:
         notification = AppNotification.query.filter_by(id=notification_id).first()
@@ -34,6 +40,8 @@ def get_notification(notification_id):
 
 # Get notifications for a department
 @notifications_management_blueprint.route('/get_notifications/department/<string:department>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
 def get_notifications_for_department(department):
     try:
         notifications = AppNotification.query.filter_by(department=department).all()
@@ -44,14 +52,15 @@ def get_notifications_for_department(department):
 
 
 @notifications_management_blueprint.route('/add_notification', methods=['POST'])
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def create_notification():
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    manager = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     try:
         data = request.json
-        manager_id = 6  # TODO: Replace with actual logic to get manager's ID
+        manager_id = user.id
 
         # Convert the expiry date string to a datetime object, removing milliseconds if present
         expiry_date_str = data['expiry_date'].split('.')[0] if '.' in data['expiry_date'] else data['expiry_date']
@@ -74,13 +83,7 @@ def create_notification():
 
 def create_notification_logic(title, message, department, priority, manager_id, expiry_date):
     try:
-        #manager = User.query.get(manager_id)
 
-        #
-
-        # Remove milliseconds if present
-        #if '.' in expiry_date:
-        #    expiry_date = expiry_date.split('.')[0]
         expiry_date_str = expiry_date.strftime('%Y-%m-%dT%H:%M:%S')
 
         new_notification = AppNotification(

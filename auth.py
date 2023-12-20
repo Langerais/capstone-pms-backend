@@ -34,10 +34,6 @@ def login():  # TESTED : OK;
                                            additional_claims=additional_claims,
                                            expires_delta=timedelta(days=1))
 
-        #         access_token = create_access_token(identity=user.email,
-        #                                            additional_claims=additional_claims,
-        #                                            expires_delta=timedelta(days=1))
-
         print(f"User: {user.email} logged in successfully")
         print(f"Access token: {access_token}")
         return jsonify(access_token=access_token), 200

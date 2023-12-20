@@ -6,8 +6,11 @@ It includes routes for retrieving cleaning schedules, managing cleaning tasks, a
 from flask import jsonify, request, Blueprint
 from datetime import datetime, timedelta
 
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 import logs
 import room_management
+from auth import requires_roles
 from models import db, CleaningSchedule, CleaningAction, Room, Reservation, \
     User  # Assuming these are your SQLAlchemy models
 
@@ -15,6 +18,8 @@ cleaning_management_blueprint = Blueprint('cleaning_management', __name__)
 
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_cleaning_schedule():
     """
     Flask route to retrieve the entire cleaning schedule.
@@ -34,6 +39,8 @@ def get_cleaning_schedule():
 
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule/room/<int:room_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_room_cleaning_schedule(room_id):
     """
     Flask route to retrieve the cleaning schedule for a specific room.
@@ -56,6 +63,8 @@ def get_room_cleaning_schedule(room_id):
 
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule/date_range', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_date_range_cleaning_schedule():
     """
     Flask route to retrieve cleaning schedules within a specified date range.
@@ -79,6 +88,8 @@ def get_date_range_cleaning_schedule():
 
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule/room/<int:room_id>/date_range', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
 def get_room_date_range_cleaning_schedule(room_id):
     """
     Flask route to retrieve the cleaning schedules for a specific room within a given date range.
@@ -119,6 +130,8 @@ def get_room_today_cleaning_schedule(room_id):
 
 
 @cleaning_management_blueprint.route('/get_room_cleaning_schedule_by_date', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_room_cleaning_schedule_by_date():
     """
     Flask route to obtain the cleaning schedule for a particular room over a specific date range.
@@ -151,6 +164,8 @@ def get_room_cleaning_schedule_by_date():
 
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule_for_reservations_date_range', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_cleaning_schedule_for_reservations_date_range():
     """
     Flask route to retrieve cleaning schedules linked to reservations within a certain date range.
@@ -207,6 +222,8 @@ def get_cleaning_schedule_for_reservations_date_range():
 
 
 @cleaning_management_blueprint.route('/remove_cleaning_task/<int:task_id>', methods=['DELETE'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def remove_cleaning_task(task_id):
     """
     Flask route to delete a specific cleaning task from the schedule.
@@ -239,6 +256,8 @@ def remove_cleaning_task(task_id):
 
 
 @cleaning_management_blueprint.route('/schedule_room_cleaning', methods=['POST'])
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def schedule_room_cleaning():
     """
     Flask route to schedule cleaning for a specific room over a number of days.
@@ -286,6 +305,8 @@ def schedule_room_cleaning():
 
 
 @cleaning_management_blueprint.route('/schedule_cleaning', methods=['POST'])
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def schedule_cleaning():
     """
     Flask route to schedule cleaning for all rooms starting from a given date.
@@ -546,6 +567,8 @@ def get_last_checkout_date_before(room_id, given_date):
 
 
 @cleaning_management_blueprint.route('/toggle_task_status/<int:schedule_id>', methods=['POST'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Cleaning')
 def change_task_status(schedule_id):
     """
     Flask route to update the status of a specific cleaning task. (Pending/Completed)
@@ -559,9 +582,9 @@ def change_task_status(schedule_id):
     Returns:
     Flask Response: A JSON response indicating the success or failure of the operation.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
+
 
     # Extract data from the request's JSON payload
     data = request.get_json()
@@ -643,7 +666,7 @@ def reschedule_future_tasks_helper(room_id, action_id, completed_date):
 
 
 # Flask route that uses the helper function
-@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])  # TODO: Do I need this?
+@cleaning_management_blueprint.route('/reschedule_future_tasks', methods=['POST'])
 def reschedule_future_tasks():
     data = request.get_json()
     room_id = data.get('room_id')
@@ -674,6 +697,8 @@ def _find_next_available_date(start_date, frequency_days, room_id, action_id):
 
 
 @cleaning_management_blueprint.route('/get_cleaning_action/<int:action_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_cleaning_action(action_id):
     action = CleaningAction.query.get(action_id)
     if action:
@@ -682,6 +707,8 @@ def get_cleaning_action(action_id):
 
 
 @cleaning_management_blueprint.route('/get_cleaning_actions', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_cleaning_actions():
     """
     Flask route to retrieve all cleaning action types.
@@ -715,8 +742,8 @@ def get_cleaning_actions():
 
 
 @cleaning_management_blueprint.route('/create_cleaning_action', methods=['POST'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def create_cleaning_action():
     """
     Creates a new cleaning action.
@@ -729,9 +756,9 @@ def create_cleaning_action():
         JSON response with an error message and a 400 status code if data is missing.
         JSON response with an error message and a 500 status code on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
+
 
     data = request.get_json()
     action_name = data.get('action_name')
@@ -753,8 +780,8 @@ def create_cleaning_action():
 
 
 @cleaning_management_blueprint.route('/remove_cleaning_action/<int:action_id>', methods=['DELETE'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def remove_cleaning_action(action_id):
     """
     Deletes a cleaning action and its related scheduled tasks.
@@ -767,9 +794,8 @@ def remove_cleaning_action(action_id):
         JSON response with an error message and a 404 status code if the action is not found.
         JSON response with an error message and a 500 status code on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     action = CleaningAction.query.get(action_id)
     if action:
@@ -787,8 +813,8 @@ def remove_cleaning_action(action_id):
 
 
 @cleaning_management_blueprint.route('/modify_cleaning_action/<int:action_id>', methods=['PUT'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager')
+@jwt_required()
+@requires_roles('Admin', 'Manager')
 def modify_cleaning_action(action_id):
     """
     Modifies an existing cleaning action.
@@ -802,9 +828,8 @@ def modify_cleaning_action(action_id):
         JSON response with an error message and a 404 status code if the action is not found.
         JSON response with an error message and a 500 status code on server error.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     action = CleaningAction.query.get(action_id)
     if action:
