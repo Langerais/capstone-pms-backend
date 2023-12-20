@@ -2,8 +2,9 @@ import logs
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
+from auth import requires_roles
 from logs import UserActionLog
 from models import db, Reservation, Balance, User, Guest, \
     ReservationStatusChange  # Import the Reservation model from models.py
@@ -12,9 +13,9 @@ reservations_management_blueprint = Blueprint('reservations_management', __name_
 
 
 @reservations_management_blueprint.route('/add_reservation', methods=['POST'])
-# @jwt_required()
-# @requires_roles('Admin', 'Manager', 'Reception')
-def add_reservation():
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def add_reservation():  # Tested
     """
     Endpoint to add a new reservation.
 
@@ -23,9 +24,9 @@ def add_reservation():
 
     :return: JSON response with the newly created reservation.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
+    #user = User.query.get(6)  # TODO: Remove this line (debugging only)
 
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -52,16 +53,17 @@ def add_reservation():
 
 
 @reservations_management_blueprint.route('/delete_reservation/<int:reservation_id>', methods=['DELETE'])
-def delete_reservation(reservation_id):  # TODO: TEST
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def delete_reservation(reservation_id):  # Tested
     """
     Endpoint to delete a reservation by ID.
 
     :param reservation_id: The ID of the reservation to delete.
     :return: JSON response with a success or error message.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
 
     reservation = Reservation.query.get(reservation_id)
     if reservation:
@@ -78,12 +80,10 @@ def delete_reservation(reservation_id):  # TODO: TEST
         return jsonify({"msg": "Reservation not found"}), 404
 
 
-# TEST delete_reservation
-# curl -X DELETE http://localhost:5000/reservations/delete_reservation/1
-
-
 @reservations_management_blueprint.route('/modify_reservation/<int:reservation_id>', methods=['PUT'])
-def modify_reservation(reservation_id):  # TODO: TEST
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def modify_reservation(reservation_id):  # Not Used
     """
     Endpoint to modify a reservation by ID.
 
@@ -93,9 +93,9 @@ def modify_reservation(reservation_id):  # TODO: TEST
     :param reservation_id: The ID of the reservation to modify.
     :return: JSON response with a success or error message.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
+
     reservation = Reservation.query.get(reservation_id)
     if not reservation:
         return jsonify({"msg": "Reservation not found"}), 404
@@ -117,22 +117,19 @@ def modify_reservation(reservation_id):  # TODO: TEST
         return jsonify({"error": str(e)}), 500
 
 
-# TEST modify_reservation
-# curl -X PUT http://localhost:5000/reservations/modify_reservation/1 \
-# -H "Content-Type: application/json" \
-# -d '{"channel_manager_id": "newID", "due_amount": 300.00}'
-
 @reservations_management_blueprint.route('/change_reservation_status/<int:reservation_id>', methods=['PUT'])
-def change_reservation_status(reservation_id):
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def change_reservation_status(reservation_id):  # Tested
     """
     Endpoint to change the status of a reservation by ID.
 
     :param reservation_id: The ID of the reservation to modify.
     :return: JSON response with a success or error message.
     """
-    ##current_user_email = get_jwt_identity()  # Get the user's email from the token
-    ##user = User.query.filter_by(email=current_user_email).first()
-    user = User.query.get(6)  # TODO: Remove this line (debugging only)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
+
     reservation = Reservation.query.get(reservation_id)
     if not reservation:
         return jsonify({"msg": "Reservation not found"}), 404
@@ -142,7 +139,6 @@ def change_reservation_status(reservation_id):
 
     print(new_status)
 
-    # You may want to validate the new status here if necessary
     if new_status not in ['Pending', 'Checked-in', 'Checked-out']:
         return jsonify({"error": "Invalid status"}), 400
 
@@ -163,6 +159,7 @@ def add_reservation_status_change_internal(reservation_id, new_status, user_id):
     """
     Function to add a reservation status change internally.
 
+    :param user_id: ID of the user making the change.
     :param reservation_id: ID of the reservation.
     :param new_status: New status of the reservation.
     :return: None or raises an exception if an error occurs.
@@ -185,13 +182,17 @@ def add_reservation_status_change_internal(reservation_id, new_status, user_id):
 
 
 @reservations_management_blueprint.route('/get_reservation_status_changes', methods=['GET'])
-def get_all_reservation_status_changes():
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def get_all_reservation_status_changes():  # Tested
     changes = ReservationStatusChange.query.all()
     return jsonify([change.to_dict() for change in changes]), 200
 
 
 @reservations_management_blueprint.route('/get_reservation_status_changes/<int:reservation_id>', methods=['GET'])
-def get_reservation_status_change_by_reservation(reservation_id):
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception')
+def get_reservation_status_change_by_reservation(reservation_id):  # Tested
     change = ReservationStatusChange.query.filter_by(reservation_id=reservation_id).all()
     if change:
         return jsonify([c.to_dict() for c in change]), 200
@@ -199,8 +200,9 @@ def get_reservation_status_change_by_reservation(reservation_id):
         return jsonify({"error": "Status change not found"}), 404
 
 
-
 @reservations_management_blueprint.route('/get_reservation/<int:reservation_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
 def get_reservation(reservation_id):  # Tested
 
     """
@@ -216,10 +218,9 @@ def get_reservation(reservation_id):  # Tested
         return jsonify({"msg": "Reservation not found"}), 404
 
 
-# TEST get_reservation
-# curl -X GET http://localhost:5000/reservations/get_reservation/1
-
 @reservations_management_blueprint.route('/get_reservations', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
 def get_reservations():  # TESTED
     """
     Endpoint to get all reservations.
@@ -231,7 +232,9 @@ def get_reservations():  # TESTED
 
 
 @reservations_management_blueprint.route('/get_guest_reservations/<int:guest_id>', methods=['GET'])
-def get_guest_reservations(guest_id):  # TESTED: OK
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
+def get_guest_reservations(guest_id):  # TESTED
 
     """
     Endpoint to get all reservations for a given guest.
@@ -245,7 +248,9 @@ def get_guest_reservations(guest_id):  # TESTED: OK
 
 # get reservations intersecting with a given date range
 @reservations_management_blueprint.route('/get_reservations_by_date_range', methods=['GET'])
-def get_reservations_by_date_range():  # TESTED: OK
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
+def get_reservations_by_date_range():  # TESTED
 
     """
     Endpoint to get all reservations intersecting with a given date range.
@@ -260,6 +265,8 @@ def get_reservations_by_date_range():  # TESTED: OK
 
 
 @reservations_management_blueprint.route('/get_reservations_by_room_and_date_range', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
 def get_reservations_by_room_and_date_range():
     """
     Endpoint to get all reservations for a given room intersecting with a given date range.
@@ -286,6 +293,8 @@ def get_reservations_by_room_and_date_range():
 
 # Calculate the unpaid amount for a given reservation (Restaurant only)
 @reservations_management_blueprint.route('/calculate_unpaid_amount/<int:reservation_id>', methods=['GET'])
+@jwt_required()
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def calculate_unpaid_amount(reservation_id):
     """
     Endpoint to calculate the unpaid amount for a given reservation (Restaurant only)

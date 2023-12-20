@@ -1,6 +1,7 @@
 # user_management.py
 
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 import auth
 import logs
@@ -10,7 +11,9 @@ user_management_blueprint = Blueprint('users', __name__)
 
 
 @user_management_blueprint.route('/create_user', methods=['POST'])
-def create_user():  # TODO: TEST
+@jwt_required()
+@auth.requires_roles('Admin', 'Manager')
+def create_user():  # TESTED
     """
     Create a new user.
     Returns:
@@ -77,6 +80,8 @@ def create_user_logic(data):
 
 
 @user_management_blueprint.route('/modify_user/<int:user_id>', methods=['PUT'])
+@jwt_required()
+@auth.requires_roles('Admin', 'Manager')
 def modify_user(user_id):  # Tested
     """
     Modify an existing user's details.
@@ -139,12 +144,11 @@ def modify_user(user_id):  # Tested
 
 
 @user_management_blueprint.route('/change_password/<int:user_id>', methods=['PUT'])
-def change_password(user_id):  # Tested
+@jwt_required()
+@auth.requires_roles('Admin', 'Manager', 'Reception', 'Cleaning', 'Bar')
+def change_password():  # Tested
     """
     Change a user's password (By user itself).
-
-    Args:
-        user_id (int): The ID of the user whose password will be changed.
 
     Returns:
         JSON response with a success message or error message and status code.
@@ -157,7 +161,8 @@ def change_password(user_id):  # Tested
           Both fields are required. It checks if the 'old_password' matches the user's
           current password and then updates the password with 'new_password'.
     """
-    user = User.query.get(user_id)
+    current_user_email = get_jwt_identity()  # Get the user's email from the token
+    user = User.query.filter_by(email=current_user_email).first()
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
@@ -177,7 +182,7 @@ def change_password(user_id):  # Tested
 
     try:
         db.session.commit()
-        log_user(user, user_id, "Change UserPassword")
+        log_user(user, user.id, "Change UserPassword")
         return jsonify({"msg": "Password updated successfully"}), 200
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -316,8 +321,32 @@ def get_user_logic(user_id):
     return user
 
 
+# Endpoint to get user by email
+@user_management_blueprint.route('/get_user_by_email/<string:email>', methods=['GET'])
+def get_user_by_email(email):
+    """
+    Get a user's details by email.
+
+    Args:
+        email (str): The email of the user to retrieve.
+
+    Returns:
+        JSON response with user details or error message and status code.
+    """
+    user = get_user_by_email_logic(email)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+    return jsonify(user.to_dict()), 200
+
+
+def get_user_by_email_logic(email):
+    user = User.query.filter_by(email=email).first()
+    return user
+
+
 # Function to get all users using separate function get_users_logic
 @user_management_blueprint.route('/get_users', methods=['GET'])
+@jwt_required()
 def get_users():
     """
     Get a list of all departments.

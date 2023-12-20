@@ -12,7 +12,7 @@ authentication_blueprint = Blueprint('auth', __name__)
 
 
 @authentication_blueprint.route('/login', methods=['POST'])
-def login():  # TESTED : OK; TODO: Logout!!!
+def login():  # TESTED : OK;
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
@@ -26,12 +26,20 @@ def login():  # TESTED : OK; TODO: Logout!!!
         return jsonify({"msg": "Invalid email format"}), 400
 
     user = User.query.filter_by(email=email).first()
+    print(f"User Department: {user.department}")
 
     if user and user.check_password(password):
         additional_claims = {"department": user.department}
         access_token = create_access_token(identity=user.email,
                                            additional_claims=additional_claims,
                                            expires_delta=timedelta(days=1))
+
+        #         access_token = create_access_token(identity=user.email,
+        #                                            additional_claims=additional_claims,
+        #                                            expires_delta=timedelta(days=1))
+
+        print(f"User: {user.email} logged in successfully")
+        print(f"Access token: {access_token}")
         return jsonify(access_token=access_token), 200
 
     return jsonify({"msg": "Bad email or password"}), 401
@@ -63,7 +71,7 @@ def check_password():
 
 @authentication_blueprint.route('/get_user_department', methods=['GET'])
 @jwt_required()
-def get_user_department():  # TESTED: OK
+def get_user_department():
     user_email = get_jwt_identity()
     user = User.query.filter_by(email=user_email).first()
 
