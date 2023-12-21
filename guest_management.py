@@ -36,7 +36,7 @@ def add_guest():
 @guest_management_blueprint.route('/delete_guest/<int:guest_id>', methods=['DELETE'])
 @jwt_required()
 @requires_roles('Admin', 'Manager', 'Reception')
-def delete_guest(guest_id):  # TODO: TEST
+def delete_guest(guest_id):
     current_user_email = get_jwt_identity()  # Get the user's email from the token
     user = User.query.filter_by(email=current_user_email).first()
 
@@ -57,7 +57,7 @@ def delete_guest(guest_id):  # TODO: TEST
 @guest_management_blueprint.route('/modify_guest/<int:guest_id>', methods=['PUT'])
 @jwt_required()
 @requires_roles('Admin', 'Manager', 'Reception')
-def modify_guest(guest_id):  # TODO: TEST
+def modify_guest(guest_id):
     current_user_email = get_jwt_identity()  # Get the user's email from the token
     user = User.query.filter_by(email=current_user_email).first()
 
@@ -83,7 +83,7 @@ def modify_guest(guest_id):  # TODO: TEST
 
 @guest_management_blueprint.route('/get_guest/<int:guest_id>', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Reception')
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def get_guest(guest_id):
     guest = Guest.query.get(guest_id)
     if guest:
@@ -94,7 +94,7 @@ def get_guest(guest_id):
 
 @guest_management_blueprint.route('/get_guests', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Reception')
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def get_guests():
     guests = Guest.query.all()
     return jsonify([guest.to_dict() for guest in guests]), 200
@@ -102,7 +102,7 @@ def get_guests():
 
 @guest_management_blueprint.route('/get_guests_by_ids', methods=['POST'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Reception')
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def get_guests_by_ids():
     guest_ids = request.json.get('guest_ids', [])
     guests = Guest.query.filter(Guest.id.in_(guest_ids)).all()
@@ -111,7 +111,7 @@ def get_guests_by_ids():
 
 @guest_management_blueprint.route('/find_guest', methods=['POST'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Reception')
+@requires_roles('Admin', 'Manager', 'Reception', 'Bar')
 def find_guest():
     try:
         data = request.get_json()

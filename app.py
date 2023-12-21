@@ -125,7 +125,7 @@ def check_departures_create_notifications():  # Tested
                     title = f"UNPAID DEPARTURE"
                     message = f"Room: {room.room_name} | Guest: {guest.name} {guest.surname} | Due: {unpaid_amount}€"
                     expiry_date = datetime.now() + timedelta(minutes=29, seconds=59)
-                    for department in ['Admin', 'Managers', 'Receptionists', 'Bar/Restoraunt']:
+                    for department in ['Admin', 'Managers', 'Receptionists', 'Bar']:
                         create_notification_logic(
                             title=title,
                             message=message,

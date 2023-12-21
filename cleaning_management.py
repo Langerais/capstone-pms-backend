@@ -89,7 +89,7 @@ def get_date_range_cleaning_schedule():
 
 @cleaning_management_blueprint.route('/get_cleaning_schedule/room/<int:room_id>/date_range', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Reception')
+@requires_roles('Admin', 'Manager', 'Reception', 'Cleaning')
 def get_room_date_range_cleaning_schedule(room_id):
     """
     Flask route to retrieve the cleaning schedules for a specific room within a given date range.
@@ -447,7 +447,8 @@ def schedule_room_cleaning_for(room_id, date_to_schedule):
         elif current_reservation and date_to_schedule > current_reservation.start_date:
             for action in cleaning_actions:
                 days_since_check_in = (date_to_schedule - current_reservation.start_date).days
-                if days_since_check_in % action.frequency_days == 0:
+                if days_since_check_in % action.frequency_days == 0 or not was_task_performed(
+                        room_id, action.id, date_to_schedule - timedelta(days=action.frequency_days), date_to_schedule):
                     schedule_cleaning_task(room.id, action.id, date_to_schedule, 'pending')
 
         # Commit the changes to the database
@@ -486,7 +487,7 @@ def schedule_cleaning_task(room_id, action_id, scheduled_date, status):
     db.session.add(new_schedule)
 
 
-def was_task_performed(room_id, action_id, last_checkout_date, check_until_date):
+def was_task_performed(room_id, action_id, check_from_date, check_until_date):
     """
     Checks whether a specific cleaning task was performed for a room between two dates.
 
@@ -504,14 +505,14 @@ def was_task_performed(room_id, action_id, last_checkout_date, check_until_date)
     """
 
     # Convert last_checkout_date and check_until_date to date objects if they are datetime instances
-    if isinstance(last_checkout_date, datetime):
-        last_checkout_date = last_checkout_date.date()
+    if isinstance(check_from_date, datetime):
+        check_from_date = check_from_date.date()
     if isinstance(check_until_date, datetime):
         check_until_date = check_until_date.date()
 
     # Iterate through each day within the specified date range
-    current_date = last_checkout_date
-    while current_date <= check_until_date:
+    current_date = check_from_date
+    while current_date < check_until_date:
         # Check if the task was completed on the current date
         task_completed = CleaningSchedule.query.filter_by(
             room_id=room_id,
@@ -561,7 +562,8 @@ def get_last_checkout_date_before(room_id, given_date):
         Reservation.end_date < given_date
     ).order_by(Reservation.end_date.desc()).first()
 
-    # Return the last checkout date if a reservation is found, else return a date 7 days before the given date (Should not happen in practice)
+    # Return the last checkout date if a reservation is found, else return a date 7 days before the given date (
+    # Should not happen in practice, except for the first reservation of a room)
     return last_reservation.end_date if last_reservation and last_reservation.end_date else given_date - timedelta(
         days=7)
 
@@ -584,7 +586,6 @@ def change_task_status(schedule_id):
     """
     current_user_email = get_jwt_identity()  # Get the user's email from the token
     user = User.query.filter_by(email=current_user_email).first()
-
 
     # Extract data from the request's JSON payload
     data = request.get_json()
@@ -758,7 +759,6 @@ def create_cleaning_action():
     """
     current_user_email = get_jwt_identity()  # Get the user's email from the token
     user = User.query.filter_by(email=current_user_email).first()
-
 
     data = request.get_json()
     action_name = data.get('action_name')

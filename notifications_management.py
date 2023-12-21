@@ -12,7 +12,7 @@ notifications_management_blueprint = Blueprint('notifications_management', __nam
 
 @notifications_management_blueprint.route('/get_notifications', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending', 'Cleaning')
 def get_notifications():
     try:
         # Fetch all notifications
@@ -25,7 +25,7 @@ def get_notifications():
 
 @notifications_management_blueprint.route('/get_notifications/<int:notification_id>', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending', 'Cleaning')
 def get_notification(notification_id):
     try:
         notification = AppNotification.query.filter_by(id=notification_id).first()
@@ -41,7 +41,7 @@ def get_notification(notification_id):
 # Get notifications for a department
 @notifications_management_blueprint.route('/get_notifications/department/<string:department>', methods=['GET'])
 @jwt_required()
-@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending')
+@requires_roles('Admin', 'Manager', 'Bar', 'Reception', 'Pending', 'Cleaning')
 def get_notifications_for_department(department):
     try:
         notifications = AppNotification.query.filter_by(department=department).all()

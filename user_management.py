@@ -78,7 +78,7 @@ def create_user_logic(data):
 
 @user_management_blueprint.route('/modify_user/<int:user_id>', methods=['PUT'])
 @jwt_required()
-@auth.requires_roles('Admin', 'Manager')
+@auth.requires_roles('Admin', 'Manager', 'Cleaning', 'Reception', 'Bar', 'Pending')
 def modify_user(user_id):  # Tested
     """
     Modify an existing user's details.
@@ -98,6 +98,11 @@ def modify_user(user_id):  # Tested
     user_who_changed = User.query.filter_by(email=current_user_email).first()
 
     user = User.query.get(user_id)
+
+    # Check if the user attempting to modify the user is the same user or an admin/manager
+    if user_who_changed.id != user_id and not auth.requires_roles('Admin', 'Manager'):
+        return jsonify({"msg": "You do not have permission to modify this user"}), 403
+
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
@@ -306,6 +311,7 @@ def get_user(user_id):
         JSON response with user details or error message and status code.
     """
     user = get_user_logic(user_id)
+    print(user.name)
     if not user:
         return jsonify({"msg": "User not found"}), 404
     return jsonify(user.to_dict()), 200
@@ -313,6 +319,7 @@ def get_user(user_id):
 
 def get_user_logic(user_id):
     user = User.query.get(user_id)
+    print(user.name)
     return user
 
 
